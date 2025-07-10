@@ -160,7 +160,7 @@ No file changes detected in this event.
 This agent was activated based on the following mentions:
 
 {{#each mentions}}
-#### {{#if (eq type 'commit')}}Commit Message{{else}}Code Comment{{/if}}
+#### {{#if type}}{{type}} Mention{{else}}Code Comment{{/if}}
 {{#if file}}
 **File**: {{file}}:{{line}}
 {{/if}}
