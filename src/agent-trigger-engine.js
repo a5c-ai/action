@@ -183,20 +183,40 @@ class AgentRouter {
       // Create GitHub API client
       const octokit = github.getOctokit(token);
       
-      // Get repository tree
+      core.debug(`Getting reference for branch '${branch}' from ${owner}/${repo}`);
+      
+      // Get the SHA of the branch
+      const { data: ref } = await octokit.rest.git.getRef({
+        owner,
+        repo,
+        ref: `heads/${branch}`
+      });
+      
+      const branchSha = ref.object.sha;
+      core.debug(`Branch SHA: ${branchSha}`);
+      
+      // Get repository tree using the branch SHA
       const { data: tree } = await octokit.rest.git.getTree({
         owner,
         repo,
-        tree_sha: branch,
+        tree_sha: branchSha,
         recursive: true
       });
+      
+      core.debug(`Retrieved ${tree.tree.length} total files from repository tree`);
 
       // Filter files based on pattern
       const agentFiles = tree.tree.filter(file => {
-        return file.type === 'blob' && 
-               file.path.endsWith('.agent.md') && 
-               this.matchesPattern(file.path, pattern);
+        const isBlob = file.type === 'blob';
+        const isAgentFile = file.path.endsWith('.agent.md');
+        const matchesPattern = this.matchesPattern(file.path, pattern);
+        
+        core.debug(`File: ${file.path}, isBlob: ${isBlob}, isAgentFile: ${isAgentFile}, matchesPattern: ${matchesPattern}`);
+        
+        return isBlob && isAgentFile && matchesPattern;
       });
+      
+      core.debug(`Found ${agentFiles.length} agent files after filtering`);
 
       // Convert to our format
       return agentFiles.map(file => ({
@@ -207,7 +227,11 @@ class AgentRouter {
       }));
     } catch (error) {
       if (error.status === 404) {
-        throw new Error(`Repository not found or not accessible: ${repoInfo.owner}/${repoInfo.repo}`);
+        if (error.message && error.message.includes('ref')) {
+          throw new Error(`Branch '${branch}' not found in repository: ${repoInfo.owner}/${repoInfo.repo}`);
+        } else {
+          throw new Error(`Repository not found or not accessible: ${repoInfo.owner}/${repoInfo.repo}`);
+        }
       } else if (error.status === 403) {
         throw new Error(`Access denied to repository: ${repoInfo.owner}/${repoInfo.repo}. Check token permissions.`);
       }
