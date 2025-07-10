@@ -1,0 +1,92 @@
+# Built-in default configuration for A5C Runner
+# This configuration is embedded in the action and provides sensible defaults
+# Users can override any of these settings in their .a5c/config.yml file
+
+# Default settings applied to all agents
+defaults:
+  # Default CLI command template - agents can override this
+  cli_command: "cat {{prompt_path}} | claude --mcp-config {{mcp_config}} -p 'fulfill the request' --output-format stream-json	--allowedTools Bash,Read,Glob,Grep,Write,MultiEdit,Edit,NotebookRead,NotebookEdit,WebFetch,TodoRead,TodoWrite,WebSearch,Task,Agent,mcp__github,mcp__agent_reporter --dangerously-skip-permissions --verbose"
+  
+  # Default model and execution settings
+  model: "claude-3-5-sonnet-20241022"
+  max_turns: 10
+  timeout: 30
+  verbose: true
+
+# MCP Server Configuration
+# Path to user-defined MCP servers (optional - built-in servers are always available)
+mcp_config_path: ".a5c/mcps.json"
+
+# Remote Agents Configuration
+remote_agents:
+  enabled: false
+  cache_timeout: 60
+  retry_attempts: 3
+  retry_delay: 1000
+  sources:
+    individual: []
+    repositories: []
+
+# File processing configuration
+file_processing:
+  max_file_size: 1048576  # 1MB
+  include_patterns:
+    - "**/*.js"
+    - "**/*.ts"
+    - "**/*.jsx"
+    - "**/*.tsx"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.go"
+    - "**/*.rs"
+    - "**/*.cpp"
+    - "**/*.c"
+    - "**/*.cs"
+    - "**/*.php"
+    - "**/*.rb"
+    - "**/*.swift"
+    - "**/*.kt"
+    - "**/*.scala"
+    - "**/*.md"
+    - "**/*.yml"
+    - "**/*.yaml"
+    - "**/*.json"
+    - "**/*.xml"
+    - "**/*.html"
+    - "**/*.css"
+    - "**/*.scss"
+    - "**/*.sql"
+  exclude_patterns:
+    - "node_modules/**"
+    - "dist/**"
+    - "build/**"
+    - "target/**"
+    - "vendor/**"
+    - ".git/**"
+    - "*.log"
+    - "*.tmp"
+    - "**/*.png"
+    - "**/*.jpg"
+    - "**/*.jpeg"
+    - "**/*.gif"
+    - "**/*.bmp"
+    - "**/*.ico"
+    - "**/*.pdf"
+    - "**/*.zip"
+    - "**/*.tar.gz"
+    - "**/*.rar"
+    - "**/*.7z"
+
+# Agent Discovery Configuration
+agent_discovery:
+  enabled: true
+  max_agents_in_context: 10
+  include_same_directory: true
+
+# Remote prompt configuration
+prompt_uri:
+  cache_timeout: 60      # Cache timeout in minutes
+  retry_attempts: 3      # Number of retry attempts
+  retry_delay: 1000      # Delay between retries in ms
+
+

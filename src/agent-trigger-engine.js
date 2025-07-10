@@ -1,0 +1,547 @@
+const fs = require('fs');
+const path = require('path');
+const core = require('@actions/core');
+const github = require('@actions/github');
+const { loadResource } = require('./resource-handler');
+const { parseFrontmatter, validateCronExpression } = require('./utils');
+
+class AgentRouter {
+  constructor() {
+    this.agents = new Map();
+  }
+
+  // Load all agents from various sources
+  async loadAgents() {
+    await this.loadLocalAgents();
+    core.info(`📋 Loaded ${this.agents.size} total agent(s)`);
+  }
+
+  // Load agents from local .a5c/agents directory
+  async loadLocalAgents() {
+    const agentsDir = path.join('.a5c', 'agents');
+    
+    if (!fs.existsSync(agentsDir)) {
+      core.warning(`Agents directory not found: ${agentsDir}`);
+      return;
+    }
+
+    const agentFiles = this.findAgentFiles(agentsDir);
+    
+    if (agentFiles.length === 0) {
+      core.warning(`No agent files found in ${agentsDir}`);
+      return;
+    }
+
+    core.info(`📂 Found ${agentFiles.length} agent file(s) in ${agentsDir}`);
+
+    for (const agentFile of agentFiles) {
+      await this.loadAgent(agentFile);
+    }
+  }
+
+  // Recursively find all .agent.md files
+  findAgentFiles(dir, agentFiles = []) {
+    try {
+      const items = fs.readdirSync(dir);
+      
+      for (const item of items) {
+        const itemPath = path.join(dir, item);
+        const stat = fs.statSync(itemPath);
+        
+        if (stat.isDirectory()) {
+          this.findAgentFiles(itemPath, agentFiles);
+        } else if (stat.isFile() && item.endsWith('.agent.md')) {
+          agentFiles.push(itemPath);
+        }
+      }
+    } catch (error) {
+      core.warning(`Error reading directory ${dir}: ${error.message}`);
+    }
+    
+    return agentFiles;
+  }
+
+  // Load a single agent
+  async loadAgent(agentPath) {
+    try {
+      const content = await loadResource(agentPath);
+      const agent = this.parseAgent(content, agentPath);
+      
+      if (agent) {
+        this.agents.set(agent.id, agent);
+        const relativePath = path.relative(path.join(process.cwd(), '.a5c', 'agents'), agentPath);
+        core.info(`✅ Loaded agent: ${agent.name} (${relativePath})`);
+      }
+    } catch (error) {
+      core.warning(`Failed to load agent ${agentPath}: ${error.message}`);
+    }
+  }
+
+  // Parse agent configuration
+  parseAgent(content, filePath) {
+    try {
+      const parsed = parseFrontmatter(content);
+      const agentId = path.basename(filePath, '.agent.md');
+      const agent = {
+        id: agentId,
+        path: filePath,
+        name: parsed.attributes.name || agentId,
+        category: parsed.attributes.category || 'general',
+        events: this.parseListField(parsed.attributes.events),
+        mentions: this.parseListField(parsed.attributes.mentions),
+        labels: this.parseListField(parsed.attributes.labels),
+        branches: this.parseListField(parsed.attributes.branches),
+        paths: this.parseListField(parsed.attributes.paths),
+        schedule: parsed.attributes.activation_cron || null,
+        priority: parseInt(parsed.attributes.priority) || 0,
+        mcp_servers: this.parseListField(parsed.attributes.mcp_servers),
+        cli_command: parsed.attributes.cli_command || null,
+        source: 'local',
+        content: parsed.body
+      };
+
+      // Validate schedule if provided
+      if (agent.schedule && !validateCronExpression(agent.schedule)) {
+        core.warning(`Invalid cron expression for agent ${agent.id}: ${agent.schedule}`);
+        agent.schedule = null;
+      }
+
+      return agent;
+    } catch (error) {
+      core.warning(`Error parsing agent ${filePath}: ${error.message}`);
+      return null;
+    }
+  }
+
+  // Parse comma-separated list field
+  parseListField(field) {
+    if (!field) return [];
+    if (Array.isArray(field)) return field;
+    return field.split(',').map(item => item.trim().replace(/^['"]|['"]$/g, ''));
+  }
+
+  // Get agents triggered by current event
+  getTriggeredAgents() {
+    const triggeredAgents = [];
+    const eventName = github.context.eventName;
+    const context = github.context;
+    
+    core.info(`🔍 Checking triggers for event: ${eventName}`);
+    
+    // Check all trigger types for each agent
+    for (const [agentId, agent] of this.agents) {
+      const triggers = this.checkAllTriggers(agent, context);
+      
+      if (triggers.length > 0) {
+        // Combine all trigger reasons into a single description
+        const triggerReasons = triggers.map(t => t.reason).join(', ');
+        const triggerTypes = triggers.map(t => t.type);
+        const triggerData = triggers.reduce((acc, t) => ({ ...acc, ...t.data }), {});
+        
+        // Add agent only once, even if it matches multiple triggers
+        triggeredAgents.push({
+          ...agent,
+          triggeredBy: triggerReasons,
+          triggerType: triggerTypes, // Array of trigger types
+          triggerData: triggerData,
+          mentionOrder: null
+        });
+        
+        // Log the individual agent found
+        core.info(`   📋 Agent found: ${agent.name} (${agent.id}) - Triggered by: ${triggerReasons}`);
+      }
+    }
+    
+    // Sort by priority (higher priority first)
+    triggeredAgents.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    
+    core.info(`🎯 Found ${triggeredAgents.length} triggered agent(s)`);
+    
+    return triggeredAgents;
+  }
+
+  // Check all trigger types for an agent
+  checkAllTriggers(agent, context) {
+    const triggers = [];
+    
+    // 1. Event-based triggers
+    if (agent.events.includes(context.eventName)) {
+      triggers.push({
+        type: 'event',
+        reason: `Event: ${context.eventName}`,
+        data: { eventName: context.eventName }
+      });
+    }
+    
+    // 2. Label-based triggers
+    const labelTriggers = this.checkLabelTriggers(agent, context);
+    triggers.push(...labelTriggers);
+    
+    // 3. Branch-based triggers
+    const branchTriggers = this.checkBranchTriggers(agent, context);
+    triggers.push(...branchTriggers);
+    
+    // 4. File path-based triggers
+    const pathTriggers = this.checkPathTriggers(agent, context);
+    triggers.push(...pathTriggers);
+    
+    // 5. Schedule-based triggers
+    const scheduleTriggers = this.checkScheduleTriggers(agent, context);
+    triggers.push(...scheduleTriggers);
+    
+    return triggers;
+  }
+
+  // Check label-based triggers
+  checkLabelTriggers(agent, context) {
+    const triggers = [];
+    
+    if (agent.labels.length === 0) return triggers;
+    
+    const { payload } = context;
+    let eventLabels = [];
+    
+    // Extract labels based on event type
+    if (payload.pull_request?.labels) {
+      eventLabels = payload.pull_request.labels.map(label => label.name);
+    } else if (payload.issue?.labels) {
+      eventLabels = payload.issue.labels.map(label => label.name);
+    } else if (payload.label?.name) {
+      // Label added/removed events
+      eventLabels = [payload.label.name];
+    }
+    
+    // Check if any agent labels match event labels
+    for (const agentLabel of agent.labels) {
+      if (eventLabels.includes(agentLabel)) {
+        triggers.push({
+          type: 'label',
+          reason: `Label: ${agentLabel}`,
+          data: { 
+            matchedLabel: agentLabel,
+            eventLabels: eventLabels,
+            eventType: context.eventName
+          }
+        });
+      }
+    }
+    
+    return triggers;
+  }
+
+  // Check branch-based triggers
+  checkBranchTriggers(agent, context) {
+    const triggers = [];
+    
+    if (agent.branches.length === 0) return triggers;
+    
+    const currentBranch = this.extractBranch(context);
+    
+    if (!currentBranch) return triggers;
+    
+    // Check if current branch matches any agent branch patterns
+    for (const branchPattern of agent.branches) {
+      if (this.matchesBranchPattern(currentBranch, branchPattern)) {
+        triggers.push({
+          type: 'branch',
+          reason: `Branch: ${branchPattern}`,
+          data: {
+            currentBranch: currentBranch,
+            matchedPattern: branchPattern,
+            eventType: context.eventName
+          }
+        });
+      }
+    }
+    
+    return triggers;
+  }
+
+  // Check file path-based triggers
+  checkPathTriggers(agent, context) {
+    const triggers = [];
+    
+    if (agent.paths.length === 0) return triggers;
+    
+    const changedFiles = this.getChangedFiles(context);
+    
+    if (changedFiles.length === 0) return triggers;
+    
+    // Check if any changed files match agent path patterns
+    for (const pathPattern of agent.paths) {
+      const matchedFiles = this.getMatchingFiles(changedFiles, pathPattern);
+      
+      if (matchedFiles.length > 0) {
+        triggers.push({
+          type: 'path',
+          reason: `Path: ${pathPattern}`,
+          data: {
+            pathPattern: pathPattern,
+            matchedFiles: matchedFiles,
+            totalChangedFiles: changedFiles.length,
+            eventType: context.eventName
+          }
+        });
+      }
+    }
+    
+    return triggers;
+  }
+
+  // Check schedule-based triggers
+  checkScheduleTriggers(agent, context) {
+    const triggers = [];
+    
+    if (!agent.schedule) return triggers;
+    
+    // Only check schedule for schedule events
+    if (context.eventName !== 'schedule') return triggers;
+    
+    if (this.isScheduledNow(agent.schedule)) {
+      triggers.push({
+        type: 'schedule',
+        reason: `Schedule: ${agent.schedule}`,
+        data: {
+          cronExpression: agent.schedule,
+          currentTime: new Date().toISOString()
+        }
+      });
+    }
+    
+    return triggers;
+  }
+
+  // Get agents triggered by mentions (with event filtering)
+  getAgentsByMention(mentionableContent, currentEvent) {
+    const mentionedAgents = [];
+    
+    core.info(`🔍 Checking for agent mentions in content for event: ${currentEvent}`);
+    
+    for (const [agentId, agent] of this.agents) {
+      // First check if agent can respond to this event (events field acts as filter)
+      if (agent.events.length > 0 && !agent.events.includes(currentEvent)) {
+        continue; // Skip this agent if it doesn't support this event
+      }
+      
+      const matchedMentions = [];
+      let earliestMentionOrder = Number.MAX_SAFE_INTEGER;
+      
+      // Check all mention patterns for this agent
+      for (const mention of agent.mentions) {
+        if (mentionableContent.includes(mention)) {
+          const mentionOrder = this.getMentionOrder(mentionableContent, mention);
+          matchedMentions.push(mention);
+          earliestMentionOrder = Math.min(earliestMentionOrder, mentionOrder);
+        }
+      }
+      
+      // If any mentions matched, add the agent only once
+      if (matchedMentions.length > 0) {
+        const triggerReasons = matchedMentions.map(m => `Mention: ${m}`).join(', ');
+        
+        mentionedAgents.push({
+          ...agent,
+          triggeredBy: triggerReasons,
+          triggerType: 'mention',
+          mentionOrder: earliestMentionOrder,
+          mentions: matchedMentions
+        });
+        
+        // Log the individual agent found
+        core.info(`   📋 Agent found: ${agent.name} (${agent.id}) - Triggered by: ${triggerReasons}`);
+      }
+    }
+    
+    // Sort by mention order (earlier mentions first)
+    mentionedAgents.sort((a, b) => a.mentionOrder - b.mentionOrder);
+    
+    core.info(`🎯 Found ${mentionedAgents.length} mentioned agent(s)`);
+    
+    return mentionedAgents;
+  }
+
+  // Get mention order in comment
+  getMentionOrder(text, mention) {
+    const index = text.indexOf(mention);
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+  }
+
+  // Extract branch name from context
+  extractBranch(context) {
+    const { payload, ref } = context;
+    
+    // Try different sources for branch name
+    if (payload.pull_request?.head?.ref) {
+      return payload.pull_request.head.ref;
+    }
+    
+    if (payload.pull_request?.base?.ref) {
+      return payload.pull_request.base.ref;
+    }
+    
+    if (ref && ref.startsWith('refs/heads/')) {
+      return ref.replace('refs/heads/', '');
+    }
+    
+    return null;
+  }
+
+  // Check if branch matches pattern (supports prefix matching and wildcards)
+  matchesBranchPattern(branch, pattern) {
+    // Exact match
+    if (branch === pattern) return true;
+    
+    // Prefix match (pattern ends with *)
+    if (pattern.endsWith('*')) {
+      const prefix = pattern.slice(0, -1);
+      return branch.startsWith(prefix);
+    }
+    
+    // Suffix match (pattern starts with *)
+    if (pattern.startsWith('*')) {
+      const suffix = pattern.slice(1);
+      return branch.endsWith(suffix);
+    }
+    
+    // Contains match (pattern has * in middle)
+    if (pattern.includes('*')) {
+      const parts = pattern.split('*');
+      let currentIndex = 0;
+      
+      for (const part of parts) {
+        if (part === '') continue;
+        const foundIndex = branch.indexOf(part, currentIndex);
+        if (foundIndex === -1) return false;
+        currentIndex = foundIndex + part.length;
+      }
+      
+      return true;
+    }
+    
+    return false;
+  }
+
+  // Get changed files from context
+  getChangedFiles(context) {
+    const { payload } = context;
+    const files = [];
+    
+    // Pull request files
+    if (payload.pull_request && payload.pull_request.changed_files > 0) {
+      // Note: We would need the GitHub API to get the actual file list
+      // For now, we'll use commits if available
+      if (payload.commits) {
+        for (const commit of payload.commits) {
+          if (commit.added) files.push(...commit.added);
+          if (commit.modified) files.push(...commit.modified);
+          if (commit.removed) files.push(...commit.removed);
+        }
+      }
+    }
+    
+    // Push event files
+    if (payload.commits) {
+      for (const commit of payload.commits) {
+        if (commit.added) files.push(...commit.added);
+        if (commit.modified) files.push(...commit.modified);
+        if (commit.removed) files.push(...commit.removed);
+      }
+    }
+    
+    // Remove duplicates
+    return [...new Set(files)];
+  }
+
+  // Get files matching a path pattern
+  getMatchingFiles(files, pattern) {
+    return files.filter(file => this.matchesPathPattern(file, pattern));
+  }
+
+  // Check if file path matches pattern (supports glob-like patterns)
+  matchesPathPattern(filePath, pattern) {
+    // Exact match
+    if (filePath === pattern) return true;
+    
+    // Directory prefix match (pattern ends with /**)
+    if (pattern.endsWith('/**')) {
+      const prefix = pattern.slice(0, -3);
+      return filePath.startsWith(prefix + '/');
+    }
+    
+    // File extension match (pattern starts with *.)
+    if (pattern.startsWith('*.')) {
+      const extension = pattern.slice(1);
+      return filePath.endsWith(extension);
+    }
+    
+    // Wildcard matching
+    if (pattern.includes('*')) {
+      const regexPattern = pattern
+        .replace(/\*\*/g, '.*')  // ** matches any path
+        .replace(/\*/g, '[^/]*')  // * matches any filename character except /
+        .replace(/\?/g, '[^/]');  // ? matches any single character except /
+      
+      const regex = new RegExp(`^${regexPattern}$`);
+      return regex.test(filePath);
+    }
+    
+    // Prefix match for directories
+    if (pattern.endsWith('/')) {
+      return filePath.startsWith(pattern);
+    }
+    
+    return false;
+  }
+
+  // Check if agent should be triggered by schedule
+  isScheduledNow(cronExpression) {
+    try {
+      if (!validateCronExpression(cronExpression)) {
+        return false;
+      }
+      
+      // For GitHub Actions, we check if the current time matches the schedule
+      const now = new Date();
+      const [minute, hour, day, month, weekday] = cronExpression.split(' ');
+      
+      // Check if current time matches the cron expression
+      return this.matchesCronField(now.getMinutes(), minute) &&
+             this.matchesCronField(now.getHours(), hour) &&
+             this.matchesCronField(now.getDate(), day) &&
+             this.matchesCronField(now.getMonth() + 1, month) &&
+             this.matchesCronField(now.getDay(), weekday);
+    } catch (error) {
+      core.warning(`Error checking schedule for ${cronExpression}: ${error.message}`);
+      return false;
+    }
+  }
+
+  // Check if value matches cron field
+  matchesCronField(value, field) {
+    if (field === '*') return true;
+    
+    // Handle ranges (e.g., "1-5")
+    if (field.includes('-')) {
+      const [start, end] = field.split('-').map(Number);
+      return value >= start && value <= end;
+    }
+    
+    // Handle lists (e.g., "1,3,5")
+    if (field.includes(',')) {
+      const values = field.split(',').map(Number);
+      return values.includes(value);
+    }
+    
+    // Handle step values (e.g., "*/5")
+    if (field.includes('/')) {
+      const [range, step] = field.split('/');
+      const stepValue = Number(step);
+      return range === '*' ? value % stepValue === 0 : false;
+    }
+    
+    // Exact match
+    return value === Number(field);
+  }
+}
+
+module.exports = AgentRouter; 

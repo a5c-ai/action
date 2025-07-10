@@ -1,0 +1,73 @@
+const core = require('@actions/core');
+const github = require('@actions/github');
+const fs = require('fs');
+const path = require('path');
+const Handlebars = require('handlebars');
+
+// Import modules
+const { loadConfig } = require('./src/config');
+const { executeMainAgent } = require('./src/agent-executor');
+const { handleMentionBasedActivation, handleEventBasedActivation, getMentionableContent } = require('./src/agent-router');
+
+const logoAscii = fs.readFileSync(path.join(__dirname, 'logo-ascii.txt'), 'utf8');
+// Initialize Handlebars helpers
+Handlebars.registerHelper('json', function(context) {
+  return JSON.stringify(context);
+});
+
+Handlebars.registerHelper('equals', function(arg1, arg2, options) {
+  return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
+});
+
+Handlebars.registerHelper('notEquals', function(arg1, arg2, options) {
+  return (arg1 != arg2) ? options.fn(this) : options.inverse(this);
+});
+
+Handlebars.registerHelper('contains', function(haystack, needle, options) {
+  return haystack.includes(needle) ? options.fn(this) : options.inverse(this);
+});
+
+Handlebars.registerHelper('formatDate', function(date) {
+  return new Date(date).toISOString();
+});
+
+async function main() {
+  try {
+    // Get the clone directory from the command line arguments
+    if(!process.argv[2]) {
+      core.setFailed('Clone directory is required');
+      return;
+    }
+    const cloneDir = process.argv[2];
+    core.info(logoAscii);
+    core.info(`🔍 Clone directory: ${cloneDir}`);
+    // set the clone directory as the current working directory
+    process.chdir(cloneDir);
+
+    // Load configuration
+    const config = await loadConfig();
+    
+    // New unified approach: always check mentions first, then fall back to event-based
+    const eventName = github.context.eventName;
+    
+    // First, try mention-based activation (works for all events now)
+    await handleMentionBasedActivation(config);
+    
+    // Note: Removed event-based activation fallback since we want mention-only behavior
+    // If you need both mention and event-based activation, uncomment below:
+    // await handleEventBasedActivation(config);
+    
+  } catch (error) {
+    core.setFailed(error.message);
+  }
+}
+
+// Export functions for module usage
+module.exports = {
+  executeMainAgent
+};
+
+// Run main if called directly
+if (require.main === module) {
+  main();
+}

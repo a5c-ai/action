@@ -1,0 +1,130 @@
+name: 'A5C Runner'
+description: 'Run AI agents using gitops principles'
+author: 'a5c.ai'
+branding:
+  icon: 'cpu'
+  color: 'blue'
+
+inputs:
+  # Agent Configuration
+  agent_uri:
+    description: 'Agent URI - supports file://, agent://, or URL formats. If not provided, auto-routing will be used.'
+    required: false
+  config_file:
+    description: 'Path to global configuration file'
+    required: false
+    default: '.a5c/config.yml'
+  config_uri:
+    description: 'Remote URI for configuration file (supports http://, https://, file://). Takes precedence over config_file if provided.'
+    required: false
+  
+  # GitHub Authentication
+  github_token:
+    description: 'GitHub token for API operations'
+    required: false
+    default: '${{ github.token }}'
+
+outputs:
+  # Execution Results
+  success:
+    description: 'Whether all agent executions were successful'
+    value: ${{ steps.a5c-agent.outputs.success }}
+  agents_run:
+    description: 'Number of agents that were executed'
+    value: ${{ steps.a5c-agent.outputs.agents_run }}
+  agents_successful:
+    description: 'Number of agents that completed successfully'
+    value: ${{ steps.a5c-agent.outputs.agents_successful }}
+  agents_failed:
+    description: 'Number of agents that failed'
+    value: ${{ steps.a5c-agent.outputs.agents_failed }}
+  agent_results:
+    description: 'JSON array of individual agent results'
+    value: ${{ steps.a5c-agent.outputs.agent_results }}
+  summary:
+    description: 'Human-readable summary of the execution'
+    value: ${{ steps.a5c-agent.outputs.summary }}
+  skipped:
+    description: 'Whether execution was skipped (no matching agents)'
+    value: ${{ steps.a5c-agent.outputs.skipped }}
+  
+  # Legacy outputs (for backward compatibility)
+  agent_response:
+    description: 'The response from the agent (legacy - use agent_results for multi-agent)'
+    value: ${{ steps.a5c-agent.outputs.agent_response }}
+  execution_time:
+    description: 'Time taken for agent execution in seconds (legacy)'
+    value: ${{ steps.a5c-agent.outputs.execution_time }}
+  
+  # Generated Content
+  report_path:
+    description: 'Path to the generated report'
+    value: ${{ steps.a5c-agent.outputs.report_path }}
+  report_content:
+    description: 'Content of the generated report'
+    value: ${{ steps.a5c-agent.outputs.report_content }}
+  
+  # GitHub Actions
+  pull_request_number:
+    description: 'Number of the created pull request'
+    value: ${{ steps.a5c-agent.outputs.pull_request_number }}
+  pull_request_url:
+    description: 'URL of the created pull request'
+    value: ${{ steps.a5c-agent.outputs.pull_request_url }}
+  issue_number:
+    description: 'Number of the created issue'
+    value: ${{ steps.a5c-agent.outputs.issue_number }}
+  issue_url:
+    description: 'URL of the created issue'
+    value: ${{ steps.a5c-agent.outputs.issue_url }}
+  comment_id:
+    description: 'ID of the created comment'
+    value: ${{ steps.a5c-agent.outputs.comment_id }}
+  commit_sha:
+    description: 'SHA of the created commit'
+    value: ${{ steps.a5c-agent.outputs.commit_sha }}
+  
+  # Artifacts
+  artifact_url:
+    description: 'URL of the uploaded artifact'
+    value: ${{ steps.a5c-agent.outputs.artifact_url }}
+  
+  # Metadata
+  agent_id:
+    description: 'Unique identifier for this agent run'
+    value: ${{ steps.a5c-agent.outputs.agent_id }}
+  agent_name:
+    description: 'Name of the executed agent'
+    value: ${{ steps.a5c-agent.outputs.agent_name }}
+  agent_category:
+    description: 'Category of the executed agent'
+    value: ${{ steps.a5c-agent.outputs.agent_category }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      run: npm ci && npm install -g @anthropic-ai/claude-code
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        NODE_ENV: production
+    
+    - name: Run A5C Runner
+      id: a5c-agent
+      run: node index.js ${{ github.workspace }}
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        DISABLE_AUTOUPDATER: 1
+        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1        
+        INPUT_AGENT_URI: ${{ inputs.agent_uri }}
+        INPUT_CONFIG_FILE: ${{ inputs.config_file }}
+        INPUT_CONFIG_URI: ${{ inputs.config_uri }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github_token }} 
+        ACTIONS_RUNTIME_TOKEN: ${{ env.ACTIONS_RUNTIME_TOKEN }}

@@ -1,0 +1,577 @@
+# A5C GitHub Action
+
+A flexible GitHub Action for automated agent-based code operations using various CLI tools like Claude, Aider, and Cursor.
+
+## Features
+
+- **Unified Resource Handler**: Robust loading of prompts, agents, and configurations from local files, HTTP/HTTPS URLs, and file:// URIs with caching and retry logic
+- **Multiple CLI Tool Support**: Configurable templates for Claude, Aider, Cursor, and custom tools
+- **Agent Discovery**: Automatic agent detection and routing based on events and mentions
+- **Remote Agent Support**: Load agents from remote repositories and individual URLs
+- **Built-in MCP Servers**: Filesystem, memory, time, search, and GitHub integration built into the action
+- **Schedule-based Activation**: Cron-based agent triggering for automated workflows
+- **MCP Server Integration**: Support for Model Context Protocol servers with configurable server selection
+- **Flexible Configuration**: Hierarchical configuration with built-in defaults and user overrides
+- **Mention-based Triggering**: Agents triggered by specific mentions in comments (serial execution by appearance order)
+- **Event-based Triggering**: Agents triggered by GitHub events (execution by priority)
+- **Structured Output Processing**: Intelligent extraction of structured data from agent responses
+
+## Quick Start
+
+1. **Create the directory structure**:
+   ```bash
+   mkdir -p .a5c/agents
+   ```
+
+2. **Create a configuration file** (`.a5c/config.yml`):
+   ```yaml
+   defaults:
+     cli_command: "cat {{prompt_path}} | claude {{#if mcp_config}}--mcp-config {{mcp_config}}{{/if}} -p 'fulfill the request'"
+     
+   file_processing:
+     include_patterns:
+       - "*.js"
+       - "*.ts"
+       - "*.py"
+     exclude_patterns:
+       - "node_modules/**"
+       - "*.test.js"
+   
+   # Optional: Remote agents configuration
+   remote_agents:
+     enabled: true
+     cache_timeout: 60
+     retry_attempts: 3
+     retry_delay: 1000
+     sources:
+       individual:
+         - uri: "https://raw.githubusercontent.com/myorg/agents/main/security-scanner.agent.md"
+           alias: "remote-security"
+       repositories:
+         - uri: "https://github.com/myorg/shared-agents"
+           pattern: "agents/**/*.agent.md"
+   ```
+
+3. **Optional: Create additional MCP servers config** (`.a5c/mcps.json`):
+   ```json
+   {
+     "mcpServers": {
+       "database": {
+         "command": "npx",
+         "args": ["-y", "@myorg/mcp-server-database"],
+         "env": {
+           "DATABASE_URL": "${DATABASE_URL}"
+         }
+       },
+       "slack": {
+         "command": "npx", 
+         "args": ["-y", "@modelcontextprotocol/server-slack"],
+         "env": {
+           "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}"
+         }
+       }
+     }
+   }
+   ```
+
+4. **Create an agent** (`.a5c/agents/code-reviewer.agent.md`):
+   ```markdown
+   ---
+   # Agent Metadata
+   name: code-reviewer
+   version: 1.0.0
+   category: code-review
+   description: AI-powered code review agent
+   
+   # Usage Context
+   usage_context: |
+     Use for comprehensive code reviews on pull requests and significant changes.
+     Performs security analysis, quality assessment, and best practices validation.
+   
+   # Invocation Context
+   invocation_context: |
+     Invoke with pull request context, changed files, and diff information.
+     Needs repository access and GitHub API permissions.
+   
+   # Execution Configuration
+   model: claude-3-5-sonnet-20241022
+   max_turns: 10
+   timeout: 15
+   
+   # MCP Server Configuration
+   mcp_servers: ["filesystem", "memory", "github"]
+   
+   # Mention Activation
+   mentions: "@code-reviewer,@review,@code-review"
+   
+   # Priority
+   priority: 10
+   ---
+   
+   Please review this code for:
+   - Code quality and best practices
+   - Security vulnerabilities
+   - Performance issues
+   - Documentation completeness
+   ```
+
+5. **Add the workflow** (`.github/workflows/a5c.yml`):
+   ```yaml
+   name: A5C Agent System
+   on:
+     pull_request:
+       types: [opened, synchronize]
+     issue_comment:
+       types: [created]
+   
+   jobs:
+     run-agents:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v3
+         - name: Run A5C Agents
+           uses: ./path/to/a5c-githubaction
+           with:
+             github_token: ${{ secrets.GITHUB_TOKEN }}
+             config_file: ".a5c/config.yml"
+   ```
+
+   **Using Remote Configuration:**
+   ```yaml
+   name: A5C Agent System with Remote Config
+   on:
+     pull_request:
+       types: [opened, synchronize]
+     issue_comment:
+       types: [created]
+   
+   jobs:
+     run-agents:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v3
+         - name: Run A5C Agents with Shared Config
+           uses: ./path/to/a5c-githubaction
+           with:
+             github_token: ${{ secrets.GITHUB_TOKEN }}
+             config_uri: "https://raw.githubusercontent.com/myorg/shared-config/main/a5c-config.yml"
+   ```
+
+## Architecture
+
+The system has been refactored into focused modules:
+
+### Core Components
+
+- **Resource Handler** (`src/resource-handler.js`): Unified resource loading with caching and retry logic
+- **Agent Router** (`agent-router.js`): Agent discovery and routing logic
+- **Configuration Manager** (`src/config.js`): Hierarchical configuration merging
+- **Prompt Engine** (`src/prompt.js`): Template-based prompt generation
+- **Agent Execution** (`src/agent-execution.js`): CLI tool execution and response handling
+- **Output Processor** (`src/output-processor.js`): Structured data extraction and formatting
+- **MCP Manager** (`src/mcp-manager.js`): Built-in and user-defined MCP server management
+- **Utilities** (`src/utils.js`): Common utility functions and helpers
+
+### Configuration System
+
+The configuration system uses a hierarchical approach:
+1. Built-in defaults (`default-config.yml`)
+2. User configuration (`.a5c/config.yml` or remote URI)
+3. Agent-specific configuration (frontmatter in agent files)
+
+#### Remote Configuration
+
+Configuration files can be loaded from remote repositories, including private repositories with proper authentication:
+
+```yaml
+# .github/workflows/a5c.yml
+- name: Run A5C with Remote Config
+  uses: ./
+  with:
+    config_uri: "https://raw.githubusercontent.com/myorg/shared-config/main/a5c-config.yml"
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+**Supported URI formats:**
+- `https://raw.githubusercontent.com/org/repo/branch/path/config.yml` - GitHub raw files
+- `https://github.com/org/repo/raw/branch/path/config.yml` - GitHub raw files (alternative)
+- `https://api.github.com/repos/org/repo/contents/path/config.yml` - GitHub API (auto-decoded)
+- `https://your-domain.com/path/config.yml` - Any HTTPS URL
+- `file:///absolute/path/config.yml` - Local file paths
+
+**Authentication:**
+- **GitHub repositories**: Automatic authentication using `GITHUB_TOKEN`
+- **Private repositories**: Requires `GITHUB_TOKEN` with appropriate permissions
+- **GitHub Enterprise**: Supported with proper token configuration
+- **Custom domains**: No authentication (public URLs only)
+
+**Features:**
+- **Caching**: Remote configs are cached to reduce API calls
+- **Retry logic**: Automatic retry on failures with exponential backoff
+- **Fallback**: Falls back to local config if remote loading fails
+
+### Agent Discovery
+
+The system automatically discovers agents from:
+- **Local agents**: `.a5c/agents/` directory (including subdirectories)
+- **Remote agents**: Individual URLs or entire repositories
+- **Pattern matching**: All `*.agent.md` files are automatically detected
+
+**Directory Structure:**
+```
+your-repo/
+├── .a5c/
+│   ├── config.yml
+│   ├── mcps.json                    # Optional: Additional MCP servers
+│   └── agents/
+│       ├── code-reviewer.agent.md
+│       ├── security/
+│       │   ├── security-scanner.agent.md
+│       │   └── vulnerability-checker.agent.md
+│       └── deployment/
+│           └── deployment-agent.agent.md
+└── .github/
+    └── workflows/
+        └── a5c.yml
+```
+
+### Agent Configuration
+
+Agents are configured using YAML frontmatter in `.agent.md` files:
+
+```yaml
+---
+# Agent Metadata
+name: security-scanner
+version: 1.0.0
+category: security
+description: Security vulnerability scanner and analysis agent
+
+# Usage Context
+usage_context: |
+  Use for security analysis, vulnerability scanning, and compliance checks.
+  Performs automated security audits and identifies potential threats.
+
+# Invocation Context
+invocation_context: |
+  Invoke with code changes, dependency updates, or security-related events.
+  Requires repository access and security scanning tools.
+
+# Execution Configuration
+model: claude-3-5-sonnet-20241022
+max_turns: 15
+timeout: 20
+
+# MCP Server Configuration
+mcp_servers: ["filesystem", "memory", "github", "search"]
+
+# Trigger Configuration
+
+# Mention-based activation
+mentions: "@security-scan,@sec-check,@security,@vuln-scan"
+
+# Label-based activation (when labels are added/present)
+labels: "security,critical,vulnerability"
+
+# Branch-based activation (supports patterns)
+branches: "feature/*,hotfix/*,security/*"
+
+# File path-based activation (supports glob patterns)
+paths: "src/**/*.js,lib/**/*.ts,security/**/*"
+
+# Scheduled activation
+activation_cron: "0 2 * * 1"  # Monday at 2 AM
+
+# Priority (higher = runs first)
+priority: 100
+---
+
+Agent prompt content goes here...
+```
+
+### Built-in MCP Servers
+
+The action includes several built-in MCP servers that are always available:
+
+| Server | Description | Usage |
+|--------|-------------|-------|
+| `agent-reporter` | Agent status reporting | Real-time status updates and communication with the execution process |
+| `filesystem` | File system access | Reading/writing files, directory operations |
+| `memory` | Persistent memory | Maintaining context across interactions |
+| `time` | Time and date utilities | Current time, date formatting, scheduling |
+| `search` | Web search via Brave | Research and information gathering |
+| `github` | GitHub API integration | Repository, issue, and PR operations |
+
+**No setup required** - these servers are embedded in the action and automatically available to all agents.
+
+### User-defined MCP Servers
+
+Add custom MCP servers via `.a5c/mcps.json`:
+
+```json
+{
+  "mcpServers": {
+    "database": {
+      "command": "npx",
+      "args": ["-y", "@myorg/mcp-server-database"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}"
+      }
+    },
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-slack"],
+      "env": {
+        "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+### Resource Loading
+
+The unified resource handler supports:
+- Local file paths: `config.yml`, `./.a5c/agents/my-agent.md`
+- File URLs: `file:///absolute/path/to/file`
+- HTTP/HTTPS URLs: `https://example.com/prompt.md`
+- Caching with configurable TTL
+- Retry logic with exponential backoff
+
+### CLI Command Templates
+
+Each agent specifies its CLI command as a complete template string using Handlebars syntax:
+
+**Built-in Template Variables:**
+- `{{prompt}}` - The full prompt text
+- `{{prompt_path}}` - Path to temporary prompt file
+- `{{mcp_config}}` - Path to MCP configuration file
+- `{{model}}` - Model configuration
+- `{{max_turns}}` - Maximum conversation turns
+- `{{verbose}}` - Verbose flag
+- `{{files}}` - Array of changed files
+
+**Example CLI Commands:**
+
+```yaml
+# Claude Code with MCP support
+cli_command: "cat {{prompt_path}} | claude {{#if mcp_config}}--mcp-config {{mcp_config}}{{/if}} -p 'fulfill the request'"
+
+```
+
+## Advanced Features
+
+### Remote Agents
+
+Load agents from remote repositories or individual URLs:
+
+```yaml
+remote_agents:
+  enabled: true
+  cache_timeout: 60        # Cache timeout in minutes
+  retry_attempts: 3        # Number of retry attempts
+  retry_delay: 1000        # Delay between retries in ms
+  sources:
+    # Individual agent files
+    individual:
+      - uri: "https://raw.githubusercontent.com/myorg/agents/main/security-scanner.agent.md"
+        alias: "remote-security"
+      - uri: "https://example.com/agents/code-reviewer.agent.md"
+        alias: "external-reviewer"
+    
+    # Entire repositories
+    repositories:
+      - uri: "https://github.com/myorg/shared-agents"
+        pattern: "agents/**/*.agent.md"
+      - uri: "https://github.com/anotherorg/public-agents"
+        pattern: "**/*.agent.md"
+```
+
+**Repository Scanning Features:**
+- Automatic discovery of agent files in remote repositories
+- Pattern-based filtering (supports glob patterns)
+- Caching of remote content with configurable TTL
+- Retry logic for failed requests
+- Support for GitHub repositories (requires `GITHUB_TOKEN`)
+
+### Schedule-based Activation
+
+Agents can be triggered on a schedule using cron expressions:
+
+```yaml
+---
+name: "Daily Security Scan"
+activation_cron: "0 9 * * 1-5"  # Weekdays at 9 AM
+events: []
+cli_command: "cat {{prompt_path}} | claude -p 'fulfill the request'"
+---
+```
+
+### Label-based Activation
+
+Agents can be triggered when specific labels are added to issues or pull requests:
+
+```yaml
+---
+name: "Security Scanner"
+labels: "security,critical,vulnerability"
+events: ["issues", "pull_request", "pull_request_target"]
+cli_command: "cat {{prompt_path}} | claude -p 'fulfill the request'"
+---
+```
+
+**Supported Events:**
+- `issues` - When labels are added to issues
+- `pull_request` - When labels are added to pull requests
+- `pull_request_target` - When labels are added to pull requests from forks
+
+### Branch-based Activation
+
+Agents can be triggered based on branch name patterns:
+
+```yaml
+---
+name: "Feature Branch CI"
+branches: "feature/*,hotfix/*,release/*"
+events: ["push", "pull_request"]
+cli_command: "cat {{prompt_path}} | claude -p 'fulfill the request'"
+---
+```
+
+**Pattern Support:**
+- `feature/*` - Matches branches starting with "feature/"
+- `*-hotfix` - Matches branches ending with "-hotfix"
+- `*staging*` - Matches branches containing "staging"
+- `main` - Exact match for "main" branch
+
+### File Path-based Activation
+
+Agents can be triggered when specific files or directories are modified:
+
+```yaml
+---
+name: "Frontend Changes"
+paths: "src/**/*.js,src/**/*.ts,components/**/*"
+events: ["push", "pull_request"]
+cli_command: "cat {{prompt_path}} | claude -p 'fulfill the request'"
+---
+```
+
+**Pattern Support:**
+- `src/**/*.js` - All JavaScript files in src directory and subdirectories
+- `*.md` - All Markdown files in root directory
+- `docs/` - All files in docs directory
+- `security/**/*` - All files in security directory and subdirectories
+
+### Trigger Combination
+
+Agents can combine multiple trigger types:
+
+```yaml
+---
+name: "Security Analysis"
+events: ["pull_request", "push"]
+labels: "security,critical"
+branches: "main,develop,feature/*"
+paths: "src/**/*.js,lib/**/*.ts,security/**/*"
+mentions: "@security-scan,@vuln-check"
+activation_cron: "0 2 * * 1"  # Also run weekly
+priority: 100
+---
+```
+
+**Trigger Logic:**
+- **ANY** trigger condition can activate the agent
+- Multiple conditions of the same type are OR'd together
+- Different trigger types are OR'd together
+- Higher priority agents run first when multiple agents are triggered
+
+### MCP Server Integration
+
+Agents can specify which MCP servers to use (built-in + user-defined):
+
+```yaml
+---
+name: "Database Agent"
+mcp_servers: ["filesystem", "memory", "database", "slack"]
+cli_command: "cat {{prompt_path}} | claude {{#if mcp_config}}--mcp-config {{mcp_config}}{{/if}} -p 'fulfill the request'"
+---
+```
+
+### File Processing
+
+Configure which files are included in agent context:
+
+```yaml
+file_processing:
+  include_patterns:
+    - "src/**/*.js"
+    - "src/**/*.ts"
+    - "**/*.md"
+  exclude_patterns:
+    - "node_modules/**"
+    - "*.test.js"
+    - "dist/**"
+```
+
+### Structured Output
+
+The output processor extracts structured data from agent responses:
+
+```yaml
+# Agent response can include:
+PR Title: Fix authentication bug
+Labels: bug, security, urgent
+Severity: high
+Summary: Fixed critical authentication vulnerability
+Action Items:
+- Update tests
+- Deploy to staging
+```
+
+## Development
+
+### Project Structure
+
+```
+a5c-githubaction/
+├── src/
+│   ├── resource-handler.js    # Unified resource loading
+│   ├── config.js              # Configuration management
+│   ├── prompt.js              # Prompt processing
+│   ├── agent-execution.js     # CLI execution
+│   ├── output-processor.js    # Output processing
+│   ├── mcp-manager.js         # MCP server management
+│   ├── utils.js               # Common utilities
+│   └── agent-router.js        # Routing handlers
+├── agent-router.js            # Main agent routing logic
+├── index.js                   # Main entry point
+├── default-config.yml         # Built-in defaults
+├── package.json               # Dependencies
+└── action.yml                 # GitHub Action definition
+```
+
+### Testing
+
+```bash
+# Install dependencies
+npm ci
+
+# Run tests
+npm test
+
+# Run linting
+npm run lint
+```
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details. 
