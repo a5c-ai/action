@@ -511,7 +511,7 @@ class AgentRouter {
   }
 
   // Get agents triggered by current event
-  getTriggeredAgents() {
+  async getTriggeredAgents() {
     const triggeredAgents = [];
     const eventName = github.context.eventName;
     const context = github.context;
@@ -520,7 +520,7 @@ class AgentRouter {
     
     // Check all trigger types for each agent
     for (const [agentId, agent] of this.agents) {
-      const triggers = this.checkAllTriggers(agent, context);
+      const triggers = await this.checkAllTriggers(agent, context);
       
       if (triggers.length > 0) {
         // Combine all trigger reasons into a single description
@@ -551,7 +551,7 @@ class AgentRouter {
   }
 
   // Check all trigger types for an agent
-  checkAllTriggers(agent, context) {
+  async checkAllTriggers(agent, context) {
     const triggers = [];
     
     // 1. Event-based triggers
@@ -572,7 +572,7 @@ class AgentRouter {
     triggers.push(...branchTriggers);
     
     // 4. File path-based triggers
-    const pathTriggers = this.checkPathTriggers(agent, context);
+    const pathTriggers = await this.checkPathTriggers(agent, context);
     triggers.push(...pathTriggers);
     
     // 5. Schedule-based triggers
@@ -648,12 +648,12 @@ class AgentRouter {
   }
 
   // Check file path-based triggers
-  checkPathTriggers(agent, context) {
+  async checkPathTriggers(agent, context) {
     const triggers = [];
     
     if (agent.paths.length === 0) return triggers;
     
-    const changedFiles = this.getChangedFiles(context);
+    const changedFiles = await this.getChangedFiles(context);
     
     if (changedFiles.length === 0) return triggers;
     
@@ -812,25 +812,49 @@ class AgentRouter {
   }
 
   // Get changed files from context
-  getChangedFiles(context) {
+  async getChangedFiles(context) {
     const { payload } = context;
     const files = [];
     
-    // Pull request files
+    // Pull request files - need to fetch from GitHub API
     if (payload.pull_request && payload.pull_request.changed_files > 0) {
-      // Note: We would need the GitHub API to get the actual file list
-      // For now, we'll use commits if available
-      if (payload.commits) {
-        for (const commit of payload.commits) {
-          if (commit.added) files.push(...commit.added);
-          if (commit.modified) files.push(...commit.modified);
-          if (commit.removed) files.push(...commit.removed);
+      try {
+        const prFiles = await this.getPullRequestFiles(payload.pull_request);
+        files.push(...prFiles);
+      } catch (error) {
+        core.warning(`Failed to get PR files: ${error.message}`);
+        // Fallback to commits if available
+        if (payload.commits) {
+          for (const commit of payload.commits) {
+            if (commit.added) files.push(...commit.added);
+            if (commit.modified) files.push(...commit.modified);
+            if (commit.removed) files.push(...commit.removed);
+          }
         }
       }
     }
     
-    // Push event files
-    if (payload.commits) {
+    // Push event files - check if this is a PR merge
+    if (payload.commits && context.eventName === 'push') {
+      // Check if this is a PR merge by looking at commit messages
+      const mergeCommit = payload.commits.find(commit => 
+        commit.message && commit.message.includes('Merge pull request #')
+      );
+      
+      if (mergeCommit) {
+        // This is a PR merge, try to get files from the merged PR
+        try {
+          const prNumber = this.extractPRNumberFromMergeCommit(mergeCommit.message);
+          if (prNumber) {
+            const prFiles = await this.getPullRequestFilesByNumber(prNumber, payload.repository);
+            files.push(...prFiles);
+          }
+        } catch (error) {
+          core.warning(`Failed to get merged PR files: ${error.message}`);
+        }
+      }
+      
+      // Always include files from commits as fallback
       for (const commit of payload.commits) {
         if (commit.added) files.push(...commit.added);
         if (commit.modified) files.push(...commit.modified);
@@ -839,12 +863,65 @@ class AgentRouter {
     }
     
     // Remove duplicates
-    return [...new Set(files)];
+    const uniqueFiles = [...new Set(files)];
+    core.info(`📁 Found ${uniqueFiles.length} changed files`);
+    return uniqueFiles;
   }
 
   // Get files matching a path pattern
   getMatchingFiles(files, pattern) {
     return files.filter(file => this.matchesPathPattern(file, pattern));
+  }
+
+  // Get files from a pull request using GitHub API
+  async getPullRequestFiles(pullRequest) {
+    try {
+      const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
+      if (!token) {
+        throw new Error('GitHub token not available');
+      }
+
+      const octokit = github.getOctokit(token);
+      const { data: files } = await octokit.rest.pulls.listFiles({
+        owner: pullRequest.base.repo.owner.login,
+        repo: pullRequest.base.repo.name,
+        pull_number: pullRequest.number
+      });
+
+      return files.map(file => file.filename);
+    } catch (error) {
+      core.warning(`Error fetching PR files: ${error.message}`);
+      return [];
+    }
+  }
+
+  // Get files from a pull request by PR number
+  async getPullRequestFilesByNumber(prNumber, repository) {
+    try {
+      const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
+      if (!token) {
+        throw new Error('GitHub token not available');
+      }
+
+      const octokit = github.getOctokit(token);
+      const { data: files } = await octokit.rest.pulls.listFiles({
+        owner: repository.owner.login,
+        repo: repository.name,
+        pull_number: prNumber
+      });
+
+      return files.map(file => file.filename);
+    } catch (error) {
+      core.warning(`Error fetching PR files for PR #${prNumber}: ${error.message}`);
+      return [];
+    }
+  }
+
+  // Extract PR number from merge commit message
+  extractPRNumberFromMergeCommit(message) {
+    // Match patterns like "Merge pull request #123"
+    const match = message.match(/Merge pull request #(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
   }
 
   // Check if file path matches pattern (supports glob-like patterns)
