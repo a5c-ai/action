@@ -31,7 +31,7 @@ async function handleMentionBasedActivation(config) {
     }
     
     // Execute agents in mention order
-    await executeAgentSequence(mentionedAgents, config);
+    await executeAgentSequence(mentionedAgents, config, router);
     
   } catch (error) {
     core.setFailed(`Mention-based activation failed: ${error.message}`);
@@ -58,7 +58,7 @@ async function handleEventBasedActivation(config) {
     }
     
     // Execute agents in priority order
-    await executeAgentSequence(triggeredAgents, config);
+    await executeAgentSequence(triggeredAgents, config, router);
     
   } catch (error) {
     core.setFailed(`Event-based activation failed: ${error.message}`);
@@ -66,7 +66,7 @@ async function handleEventBasedActivation(config) {
 }
 
 // Execute a sequence of agents
-async function executeAgentSequence(agents, globalConfig) {
+async function executeAgentSequence(agents, globalConfig, router) {
   const results = [];
   let allSuccessful = true;
   
@@ -94,8 +94,8 @@ async function executeAgentSequence(agents, globalConfig) {
       // Merge with global configuration
       const mergedConfig = mergeConfigurations(globalConfig, agentConfig);
       
-      // Execute the agent
-      await executeMainAgent(mergedConfig, globalConfig);
+      // Execute the agent with the router that has all agents loaded (including remote)
+      await executeMainAgent(mergedConfig, globalConfig, router);
       
       results.push({
         agent_id: agentInfo.id,

@@ -106,7 +106,6 @@ async function generateAgentDiscoveryContext(config) {
     }
     
     // Get explicitly included external agents 
-    // @code-review needs review
     if (config.agent_discovery.include_external_agents) {
       for (const agentId of config.agent_discovery.include_external_agents) {
         const agentPath = `.a5c/agents/${agentId}.agent.md`;
