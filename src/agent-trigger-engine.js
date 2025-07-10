@@ -272,6 +272,9 @@ class AgentRouter {
         path: uri,
         name: parsed.attributes.name || alias || agentId,
         category: parsed.attributes.category || 'general',
+        description: parsed.attributes.description || null,
+        usage_context: parsed.attributes.usage_context || null,
+        invocation_context: parsed.attributes.invocation_context || null,
         events: this.parseListField(parsed.attributes.events),
         mentions: this.parseListField(parsed.attributes.mentions),
         labels: this.parseListField(parsed.attributes.labels),
@@ -281,6 +284,7 @@ class AgentRouter {
         priority: parseInt(parsed.attributes.priority) || 0,
         mcp_servers: this.parseListField(parsed.attributes.mcp_servers),
         cli_command: parsed.attributes.cli_command || null,
+        agent_discovery: parsed.attributes.agent_discovery || null,
         source: 'remote',
         remote_uri: uri,
         content: parsed.body
@@ -310,6 +314,91 @@ class AgentRouter {
       const filename = path.basename(uri);
       return filename.replace(/\.agent\.md$/, '');
     }
+  }
+
+  // Get all available agents for discovery (both local and remote)
+  getAllAgents() {
+    return Array.from(this.agents.values());
+  }
+
+  // Get agent discovery context for a specific agent
+  generateAgentDiscoveryContext(currentAgent) {
+    const agentConfig = currentAgent.agent_discovery || {};
+    
+    if (!agentConfig.enabled) {
+      core.debug(`Agent discovery disabled for agent: ${currentAgent.id}`);
+      return [];
+    }
+
+    core.info(`🔍 Generating agent discovery context for: ${currentAgent.name}`);
+    
+    const agentContext = [];
+    const maxAgents = agentConfig.max_agents_in_context || 10;
+    const allAgents = this.getAllAgents();
+    
+    try {
+      // Get agents from same directory/category
+      if (agentConfig.include_same_directory) {
+        const sameDirectoryAgents = allAgents.filter(agent => {
+          // Skip self
+          if (agent.id === currentAgent.id) return false;
+          
+          // Include agents from same category or source
+          return agent.category === currentAgent.category || 
+                 agent.source === currentAgent.source;
+        });
+        
+        core.info(`   Found ${sameDirectoryAgents.length} agents from same directory/category`);
+        
+        for (const agent of sameDirectoryAgents.slice(0, maxAgents)) {
+          agentContext.push(this.createAgentDiscoveryInfo(agent));
+        }
+      }
+      
+      // Get explicitly included external agents
+      if (agentConfig.include_external_agents && Array.isArray(agentConfig.include_external_agents)) {
+        core.info(`   Looking for ${agentConfig.include_external_agents.length} explicitly included agents`);
+        
+        for (const agentId of agentConfig.include_external_agents) {
+          const agent = this.agents.get(agentId);
+          if (agent && agent.id !== currentAgent.id) {
+            agentContext.push(this.createAgentDiscoveryInfo(agent));
+            core.info(`   Added external agent: ${agent.name}`);
+          } else {
+            core.warning(`   External agent not found: ${agentId}`);
+          }
+        }
+      }
+      
+      // Remove duplicates based on agent ID
+      const uniqueAgents = agentContext.filter((agent, index, self) => 
+        index === self.findIndex(a => a.id === agent.id)
+      );
+      
+      core.info(`   Final agent discovery context: ${uniqueAgents.length} agents`);
+      
+      return uniqueAgents.slice(0, maxAgents);
+    } catch (error) {
+      core.warning(`Error generating agent discovery context: ${error.message}`);
+      return [];
+    }
+  }
+
+  // Create agent discovery info object
+  createAgentDiscoveryInfo(agent) {
+    return {
+      id: agent.id,
+      name: agent.name,
+      category: agent.category,
+      source: agent.source,
+      mentions: agent.mentions,
+      description: agent.description || `${agent.name} - ${agent.category} agent`,
+      usage_context: agent.usage_context || `Use ${agent.name} for ${agent.category} tasks`,
+      invocation_context: agent.invocation_context || `Invoke with ${agent.mentions.join(', ')}`,
+      events: agent.events,
+      labels: agent.labels,
+      paths: agent.paths
+    };
   }
 
   // Recursively find all .agent.md files
@@ -360,6 +449,9 @@ class AgentRouter {
         path: filePath,
         name: parsed.attributes.name || agentId,
         category: parsed.attributes.category || 'general',
+        description: parsed.attributes.description || null,
+        usage_context: parsed.attributes.usage_context || null,
+        invocation_context: parsed.attributes.invocation_context || null,
         events: this.parseListField(parsed.attributes.events),
         mentions: this.parseListField(parsed.attributes.mentions),
         labels: this.parseListField(parsed.attributes.labels),
@@ -369,6 +461,7 @@ class AgentRouter {
         priority: parseInt(parsed.attributes.priority) || 0,
         mcp_servers: this.parseListField(parsed.attributes.mcp_servers),
         cli_command: parsed.attributes.cli_command || null,
+        agent_discovery: parsed.attributes.agent_discovery || null,
         source: 'local',
         content: parsed.body
       };

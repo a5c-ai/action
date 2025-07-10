@@ -230,6 +230,13 @@ The system automatically discovers agents from:
 - **Remote agents**: Individual URLs or entire repositories
 - **Pattern matching**: All `*.agent.md` files are automatically detected
 
+**Agent Discovery Features:**
+- **Cross-agent context**: Agents can discover and reference other agents in their prompts
+- **Local + Remote support**: Discovery works across both local and remote agents
+- **Category-based discovery**: Agents from the same category are automatically included
+- **Explicit inclusion**: Agents can explicitly include specific other agents by ID
+- **Configurable limits**: Maximum number of agents in discovery context is configurable
+
 **Directory Structure:**
 ```
 your-repo/
@@ -297,9 +304,50 @@ activation_cron: "0 2 * * 1"  # Monday at 2 AM
 
 # Priority (higher = runs first)
 priority: 100
+
+# Agent Discovery Configuration
+agent_discovery:
+  enabled: true
+  include_same_directory: true
+  include_external_agents: ["code-review-agent", "deployment-agent"]
+  max_agents_in_context: 6
 ---
 
 Agent prompt content goes here...
+```
+
+### Agent Discovery Configuration
+
+Each agent can be configured to discover and reference other agents in their prompts. This enables cross-agent collaboration and context sharing:
+
+```yaml
+agent_discovery:
+  enabled: true                    # Enable/disable agent discovery
+  include_same_directory: true     # Include agents from same category/source
+  include_external_agents:         # Explicitly include specific agents
+    - "code-review-agent"
+    - "security-scanner"
+    - "deployment-agent"
+  max_agents_in_context: 6        # Maximum number of agents in discovery context
+```
+
+**Agent Discovery Behavior:**
+- **Same Directory/Category**: When `include_same_directory: true`, agents from the same category or source are automatically included
+- **External Agents**: Specific agents can be explicitly included by their ID, regardless of category
+- **Local + Remote**: Discovery works across both local and remote agents seamlessly
+- **Deduplication**: Duplicate agents are automatically removed from the discovery context
+- **Limits**: The `max_agents_in_context` setting prevents the context from becoming too large
+
+**Usage in Prompts:**
+The discovered agents are available in the prompt template as `{{availableAgents}}` and can be referenced by the AI agent for collaboration:
+
+```markdown
+Available agents for collaboration:
+{{#each availableAgents}}
+- **{{name}}** ({{id}}): {{description}}
+  - Invoke with: {{mentions}}
+  - Use for: {{usage_context}}
+{{/each}}
 ```
 
 ### Built-in MCP Servers
