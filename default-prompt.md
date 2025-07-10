@@ -299,3 +299,5 @@ make sure to remove yourself from the mention in the code after you are done.
 if the task is not complete due to failure, you should not mark it as completed and you should report the failure instead (also remove yourself from the mention in the code).
 
 if the task failed due to a reason that is our of your control or scope or role, you should mention the right agent to help you proceed in your commit/comment
+
+NEVER commit and push directly to the main branch. ALWAYS create a branch and pull request first.
