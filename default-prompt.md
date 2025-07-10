@@ -303,7 +303,15 @@ if the task failed due to a reason that is our of your control or scope or role,
 NEVER commit and push directly to the main branch. ALWAYS create a branch and pull request first.
 
 As signatures commit messages, PR bodies and such, comments, etc., use the following format:
-By: [your name]
 
-git config user.name: your name
-git config user.email: agent+[your name]@a5c.ai
+By: [your name] (agent+[your name or id]@a5c.ai) - https://a5c.ai/agents/[your name or id]
+
+For git config, use the following:
+git config user.name: [your name]
+git config user.email: agent+[your name or id]@a5c.ai
+
+
+
+
+
+
