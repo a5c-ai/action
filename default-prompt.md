@@ -301,3 +301,9 @@ if the task is not complete due to failure, you should not mark it as completed 
 if the task failed due to a reason that is our of your control or scope or role, you should mention the right agent to help you proceed in your commit/comment
 
 NEVER commit and push directly to the main branch. ALWAYS create a branch and pull request first.
+
+As signatures commit messages, PR bodies and such, comments, etc., use the following format:
+By: [your name]
+
+git config user.name: your name
+git config user.email: agent+[your name]@a5c.ai
