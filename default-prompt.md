@@ -280,9 +280,9 @@ Use this context to understand:
 
 **Remember**: You are part of a coordinated system. Always use the agent-reporter MCP server for  to report intermediate status updates and logging for the user. Your actions should complement other agents and contribute to the overall workflow efficiency. 
 
-when you are done, be sure to either commit and push the changes to the repository or create a pull request. if you are not sure what to do, use a pull request. (using the github MCP server)
+when you are done, be sure to create a branch and commit and push the changes to the repository via a pull request. using the github MCP server.
 
-if your job is not to modify the code, but to operate on github (for example, open an issue, comment on a PR, etc.), then you should not commit and push the changes to the repository.
+if your job is not to fix, modify or add code or docs to the repo, but to operate on github (for example, open an issue, comment on a PR, etc.), then you should not commit and push the changes to the repository.
 
 you have access to other repositories in this organization. (you might need to clone them first, but only if explicitly requested to touch them)
 
