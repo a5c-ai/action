@@ -32,9 +32,9 @@ async function executeMainAgent(agent, config) {
         const processedOutput = await processAgentOutput(response, agent);
 
         // Set outputs for subsequent workflow steps
-        setOutputs({
-          ...processedOutput.outputs,
-        });
+        // setOutputs({
+        //   ...processedOutput.outputs,
+        // });
         
     } catch (error) {
         core.error(`Error in executeMainAgent: ${error.message}`);
