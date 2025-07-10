@@ -66,7 +66,7 @@ jobs:
 
       - name: Run A5C
         id: agents
-        uses: a5c-ai/action@latest
+        uses: a5c-ai/action@main
         if: steps.filter-self.outputs.skip == 'false'
         with:
           # Auto-routing by default, unless specific agent is requested
