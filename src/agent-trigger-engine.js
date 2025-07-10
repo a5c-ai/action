@@ -6,13 +6,15 @@ const { loadResource } = require('./resource-handler');
 const { parseFrontmatter, validateCronExpression } = require('./utils');
 
 class AgentRouter {
-  constructor() {
+  constructor(config = {}) {
     this.agents = new Map();
+    this.config = config;
   }
 
   // Load all agents from various sources
   async loadAgents() {
     await this.loadLocalAgents();
+    await this.loadRemoteAgents();
     core.info(`📋 Loaded ${this.agents.size} total agent(s)`);
   }
 
@@ -36,6 +38,277 @@ class AgentRouter {
 
     for (const agentFile of agentFiles) {
       await this.loadAgent(agentFile);
+    }
+  }
+
+  // Load agents from remote sources
+  async loadRemoteAgents() {
+    const remoteConfig = this.config.remote_agents;
+    
+    if (!remoteConfig || !remoteConfig.enabled) {
+      core.debug('Remote agents not enabled, skipping');
+      return;
+    }
+
+    core.info('🌐 Loading remote agents...');
+    
+    try {
+      // Load individual agents
+      if (remoteConfig.sources?.individual) {
+        core.info(`📋 Loading ${remoteConfig.sources.individual.length} individual remote agent(s)`);
+        for (const individualConfig of remoteConfig.sources.individual) {
+          await this.loadIndividualAgent(individualConfig, remoteConfig);
+        }
+      }
+
+      // Load repository agents
+      if (remoteConfig.sources?.repositories) {
+        core.info(`📋 Loading agents from ${remoteConfig.sources.repositories.length} remote repository(ies)`);
+        for (const repositoryConfig of remoteConfig.sources.repositories) {
+          await this.loadRepositoryAgents(repositoryConfig, remoteConfig);
+        }
+      }
+
+      core.info(`🌐 Finished loading remote agents`);
+    } catch (error) {
+      core.warning(`Error loading remote agents: ${error.message}`);
+    }
+  }
+
+  // Load a single agent from remote URI
+  async loadIndividualAgent(agentConfig, remoteConfig) {
+    try {
+      const { uri, alias } = agentConfig;
+      core.info(`📥 Loading individual agent from: ${uri}`);
+      
+      // Load agent content using resource handler
+      const content = await loadResource(uri, {
+        cache_timeout: remoteConfig.cache_timeout || 60,
+        retry_attempts: remoteConfig.retry_attempts || 3,
+        retry_delay: remoteConfig.retry_delay || 1000
+      });
+
+      const agent = this.parseRemoteAgent(content, uri, alias);
+      
+      if (agent) {
+        this.agents.set(agent.id, agent);
+        core.info(`✅ Loaded remote agent: ${agent.name} (${agent.id})`);
+      }
+    } catch (error) {
+      core.warning(`Failed to load individual agent from ${agentConfig.uri}: ${error.message}`);
+    }
+  }
+
+  // Load agents from a repository
+  async loadRepositoryAgents(repositoryConfig, remoteConfig) {
+    try {
+      const { uri, pattern } = repositoryConfig;
+      core.info(`📥 Loading agents from repository: ${uri}`);
+      
+      // Discover agent files in the repository
+      const agentFiles = await this.discoverAgentsInRepository(uri, pattern, remoteConfig);
+      
+      if (agentFiles.length === 0) {
+        core.warning(`No agent files found in repository: ${uri}`);
+        return;
+      }
+
+      core.info(`📂 Found ${agentFiles.length} agent file(s) in repository`);
+
+      // Load each discovered agent
+      for (const agentFile of agentFiles) {
+        await this.loadRepositoryAgent(agentFile, remoteConfig);
+      }
+    } catch (error) {
+      core.warning(`Failed to load repository agents from ${repositoryConfig.uri}: ${error.message}`);
+    }
+  }
+
+  // Load a single agent from repository
+  async loadRepositoryAgent(agentFile, remoteConfig) {
+    try {
+      core.info(`📥 Loading repository agent: ${agentFile.path}`);
+      
+      // Load agent content using resource handler
+      const content = await loadResource(agentFile.download_url, {
+        cache_timeout: remoteConfig.cache_timeout || 60,
+        retry_attempts: remoteConfig.retry_attempts || 3,
+        retry_delay: remoteConfig.retry_delay || 1000
+      });
+
+      const agent = this.parseRemoteAgent(content, agentFile.download_url, agentFile.name);
+      
+      if (agent) {
+        this.agents.set(agent.id, agent);
+        core.info(`✅ Loaded repository agent: ${agent.name} (${agent.id})`);
+      }
+    } catch (error) {
+      core.warning(`Failed to load repository agent ${agentFile.path}: ${error.message}`);
+    }
+  }
+
+  // Discover agent files in a repository
+  async discoverAgentsInRepository(repoUri, pattern, remoteConfig) {
+    try {
+      // Parse repository URI to extract owner and repo
+      const repoInfo = this.parseRepositoryUri(repoUri);
+      
+      if (!repoInfo) {
+        throw new Error(`Invalid repository URI: ${repoUri}`);
+      }
+
+      // Use GitHub API to discover files
+      if (repoInfo.platform === 'github') {
+        return await this.discoverGitHubAgents(repoInfo, pattern, remoteConfig);
+      } else {
+        throw new Error(`Unsupported repository platform: ${repoInfo.platform}`);
+      }
+    } catch (error) {
+      core.warning(`Error discovering agents in repository ${repoUri}: ${error.message}`);
+      return [];
+    }
+  }
+
+  // Discover agents in GitHub repository
+  async discoverGitHubAgents(repoInfo, pattern, remoteConfig) {
+    try {
+      const { owner, repo, branch = 'main' } = repoInfo;
+      
+      // Get GitHub token
+      const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
+      if (!token) {
+        throw new Error('GitHub token not available for repository access');
+      }
+
+      // Create GitHub API client
+      const octokit = github.getOctokit(token);
+      
+      // Get repository tree
+      const { data: tree } = await octokit.rest.git.getTree({
+        owner,
+        repo,
+        tree_sha: branch,
+        recursive: true
+      });
+
+      // Filter files based on pattern
+      const agentFiles = tree.tree.filter(file => {
+        return file.type === 'blob' && 
+               file.path.endsWith('.agent.md') && 
+               this.matchesPattern(file.path, pattern);
+      });
+
+      // Convert to our format
+      return agentFiles.map(file => ({
+        path: file.path,
+        name: path.basename(file.path, '.agent.md'),
+        download_url: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${file.path}`,
+        sha: file.sha
+      }));
+    } catch (error) {
+      if (error.status === 404) {
+        throw new Error(`Repository not found or not accessible: ${repoInfo.owner}/${repoInfo.repo}`);
+      } else if (error.status === 403) {
+        throw new Error(`Access denied to repository: ${repoInfo.owner}/${repoInfo.repo}. Check token permissions.`);
+      }
+      throw error;
+    }
+  }
+
+  // Parse repository URI to extract components
+  parseRepositoryUri(uri) {
+    try {
+      // GitHub repository patterns
+      const githubPatterns = [
+        /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/tree\/([^\/]+))?/,
+        /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\.git/,
+        /^git@github\.com:([^\/]+)\/([^\/]+)\.git/
+      ];
+
+      for (const pattern of githubPatterns) {
+        const match = uri.match(pattern);
+        if (match) {
+          return {
+            platform: 'github',
+            owner: match[1],
+            repo: match[2].replace(/\.git$/, ''),
+            branch: match[3] || 'main'
+          };
+        }
+      }
+
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Check if file path matches glob pattern
+  matchesPattern(filePath, pattern) {
+    if (!pattern) return true;
+    
+    // Convert glob pattern to regex
+    // First replace ** with a placeholder to avoid conflicts
+    const regexPattern = pattern
+      .replace(/\*\*/g, '__DOUBLE_STAR__')
+      .replace(/\*/g, '[^/]*')
+      .replace(/__DOUBLE_STAR__/g, '.*')
+      .replace(/\?/g, '.');
+    
+    const regex = new RegExp(`^${regexPattern}$`);
+    return regex.test(filePath);
+  }
+
+  // Parse remote agent configuration
+  parseRemoteAgent(content, uri, alias) {
+    try {
+      const parsed = parseFrontmatter(content);
+      
+      // Use alias if provided, otherwise extract from URI
+      const agentId = alias || this.extractAgentIdFromUri(uri);
+      
+      const agent = {
+        id: agentId,
+        path: uri,
+        name: parsed.attributes.name || alias || agentId,
+        category: parsed.attributes.category || 'general',
+        events: this.parseListField(parsed.attributes.events),
+        mentions: this.parseListField(parsed.attributes.mentions),
+        labels: this.parseListField(parsed.attributes.labels),
+        branches: this.parseListField(parsed.attributes.branches),
+        paths: this.parseListField(parsed.attributes.paths),
+        schedule: parsed.attributes.activation_cron || null,
+        priority: parseInt(parsed.attributes.priority) || 0,
+        mcp_servers: this.parseListField(parsed.attributes.mcp_servers),
+        cli_command: parsed.attributes.cli_command || null,
+        source: 'remote',
+        remote_uri: uri,
+        content: parsed.body
+      };
+
+      // Validate schedule if provided
+      if (agent.schedule && !validateCronExpression(agent.schedule)) {
+        core.warning(`Invalid cron expression for remote agent ${agent.id}: ${agent.schedule}`);
+        agent.schedule = null;
+      }
+
+      return agent;
+    } catch (error) {
+      core.warning(`Error parsing remote agent from ${uri}: ${error.message}`);
+      return null;
+    }
+  }
+
+  // Extract agent ID from URI
+  extractAgentIdFromUri(uri) {
+    try {
+      const url = new URL(uri);
+      const filename = path.basename(url.pathname);
+      return filename.replace(/\.agent\.md$/, '');
+    } catch (error) {
+      // Fallback to simple path extraction
+      const filename = path.basename(uri);
+      return filename.replace(/\.agent\.md$/, '');
     }
   }
 

@@ -19,13 +19,13 @@ mcp_config_path: ".a5c/mcps.json"
 
 # Remote Agents Configuration
 remote_agents:
-  enabled: false
-  cache_timeout: 60
-  retry_attempts: 3
-  retry_delay: 1000
+  enabled: true
+  cache_timeout: 120       # Cache timeout in minutes (2 hours)
+  retry_attempts: 5        # Number of retry attempts
+  retry_delay: 2000        # Delay between retries in milliseconds
   sources:
-    individual: []
-    repositories: []
+    individual: []         # List of individual agent URIs
+    repositories: []       # List of repository configurations
 
 # File processing configuration
 file_processing:

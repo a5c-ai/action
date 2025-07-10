@@ -19,7 +19,7 @@ async function handleMentionBasedActivation(config) {
     core.info(`🔍 Checking for agent mentions in content: "${mentionableContent.substring(0, 100)}..."`);
     
     // Initialize router and load agents
-    const router = new AgentRouter();
+    const router = new AgentRouter(config);
     await router.loadAgents();
     
     // Get agents mentioned in the content (filtered by event)
@@ -46,7 +46,7 @@ async function handleEventBasedActivation(config) {
     core.info(`🎯 Handling event-based activation for: ${context.eventName}`);
     
     // Initialize router and load agents
-    const router = new AgentRouter();
+    const router = new AgentRouter(config);
     await router.loadAgents();
     
     // Get agents triggered by current event

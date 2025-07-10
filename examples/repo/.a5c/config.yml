@@ -24,18 +24,26 @@
 #     - "*.test.*"
 
 # Enable and configure remote agents (optional)
-# remote_agents:
-#   enabled: true
-#   cache_timeout: 120  # 2 hours
-#   retry_attempts: 5
-#   retry_delay: 2000   # 2 seconds
-#   sources:
-#     individual:
-#       - uri: "https://raw.githubusercontent.com/myorg/.a5c/main/agents/custom-agent.agent.md"
-#         alias: "custom-remote-agent"
-#     repositories:
-#       - uri: "https://github.com/myorg/a5c-for-develpment"
-#         pattern: ".a5c/agents/**/*.agent.md"
+# NOTE: Remote agents are enabled by default. For private repositories, ensure
+# your workflow has the appropriate permissions and GITHUB_TOKEN access.
+remote_agents:
+  enabled: true
+  cache_timeout: 120  # 2 hours
+  retry_attempts: 5
+  retry_delay: 2000   # 2 seconds
+  sources:
+    individual:
+      - uri: "https://raw.githubusercontent.com/myorg/.a5c/main/agents/custom-agent.agent.md"
+        alias: "custom-remote-agent"
+      # Example private repository agent:
+      # - uri: "https://raw.githubusercontent.com/myorg/private-agents/main/proprietary.agent.md"
+      #   alias: "private-agent"
+    repositories:
+      - uri: "https://github.com/myorg/a5c-for-development"
+        pattern: ".a5c/agents/**/*.agent.md"
+      # Example private repository:
+      # - uri: "https://github.com/myorg/private-agents"
+      #   pattern: "agents/**/*.agent.md"
 
 # Override agent discovery settings
 # agent_discovery:

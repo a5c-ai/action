@@ -40,16 +40,20 @@ A flexible GitHub Action for automated agent-based code operations using various
    # Optional: Remote agents configuration
    remote_agents:
      enabled: true
-     cache_timeout: 60
-     retry_attempts: 3
-     retry_delay: 1000
+     cache_timeout: 120     # Cache timeout in minutes (2 hours)
+     retry_attempts: 5      # Number of retry attempts
+     retry_delay: 2000      # Delay between retries in milliseconds
      sources:
        individual:
          - uri: "https://raw.githubusercontent.com/myorg/agents/main/security-scanner.agent.md"
            alias: "remote-security"
+         - uri: "https://raw.githubusercontent.com/myorg/private-agents/main/proprietary-scanner.agent.md"
+           alias: "private-scanner"
        repositories:
          - uri: "https://github.com/myorg/shared-agents"
            pattern: "agents/**/*.agent.md"
+         - uri: "https://github.com/myorg/private-agents"
+           pattern: ".a5c/agents/**/*.agent.md"
    ```
 
 3. **Optional: Create additional MCP servers config** (`.a5c/mcps.json`):
@@ -136,9 +140,9 @@ A flexible GitHub Action for automated agent-based code operations using various
              config_file: ".a5c/config.yml"
    ```
 
-   **Using Remote Configuration:**
+   **Using Remote Configuration and Agents:**
    ```yaml
-   name: A5C Agent System with Remote Config
+   name: A5C Agent System with Remote Config and Agents
    on:
      pull_request:
        types: [opened, synchronize]
@@ -148,14 +152,23 @@ A flexible GitHub Action for automated agent-based code operations using various
    jobs:
      run-agents:
        runs-on: ubuntu-latest
+       permissions:
+         contents: read
+         issues: write
+         pull-requests: write
+         # For private repositories containing agents:
+         actions: read
+         metadata: read
        steps:
          - uses: actions/checkout@v3
-         - name: Run A5C Agents with Shared Config
+         - name: Run A5C Agents with Remote Config and Agents
            uses: ./path/to/a5c-githubaction
            with:
              github_token: ${{ secrets.GITHUB_TOKEN }}
              config_uri: "https://raw.githubusercontent.com/myorg/shared-config/main/a5c-config.yml"
    ```
+
+   **Note:** For private repositories containing agents, ensure your `GITHUB_TOKEN` has the `repo` scope. The default `GITHUB_TOKEN` in GitHub Actions has sufficient permissions for public repositories but may need additional permissions for private repositories.
 
 ## Architecture
 
@@ -363,19 +376,21 @@ cli_command: "cat {{prompt_path}} | claude {{#if mcp_config}}--mcp-config {{mcp_
 
 ### Remote Agents
 
-Load agents from remote repositories or individual URLs:
+Load agents from remote repositories or individual URLs with full support for private repositories:
 
 ```yaml
 remote_agents:
   enabled: true
-  cache_timeout: 60        # Cache timeout in minutes
-  retry_attempts: 3        # Number of retry attempts
-  retry_delay: 1000        # Delay between retries in ms
+  cache_timeout: 120       # Cache timeout in minutes (2 hours)
+  retry_attempts: 5        # Number of retry attempts
+  retry_delay: 2000        # Delay between retries in milliseconds
   sources:
     # Individual agent files
     individual:
       - uri: "https://raw.githubusercontent.com/myorg/agents/main/security-scanner.agent.md"
         alias: "remote-security"
+      - uri: "https://raw.githubusercontent.com/myorg/private-agents/main/proprietary-scanner.agent.md"
+        alias: "private-scanner"
       - uri: "https://example.com/agents/code-reviewer.agent.md"
         alias: "external-reviewer"
     
@@ -383,16 +398,38 @@ remote_agents:
     repositories:
       - uri: "https://github.com/myorg/shared-agents"
         pattern: "agents/**/*.agent.md"
+      - uri: "https://github.com/myorg/private-agents"
+        pattern: ".a5c/agents/**/*.agent.md"
       - uri: "https://github.com/anotherorg/public-agents"
         pattern: "**/*.agent.md"
 ```
 
 **Repository Scanning Features:**
-- Automatic discovery of agent files in remote repositories
-- Pattern-based filtering (supports glob patterns)
-- Caching of remote content with configurable TTL
-- Retry logic for failed requests
-- Support for GitHub repositories (requires `GITHUB_TOKEN`)
+- Automatic discovery of agent files in remote repositories using GitHub API
+- Pattern-based filtering with full glob pattern support (`**/*.agent.md`, `agents/**/*.agent.md`, etc.)
+- Caching of remote content with configurable TTL to reduce API calls
+- Robust retry logic with exponential backoff for failed requests
+- Full support for private GitHub repositories using `GITHUB_TOKEN`
+- Authentication automatically handled for GitHub repositories
+- Branch-specific loading support (defaults to `main` branch)
+
+**Authentication for Private Repositories:**
+- **GitHub Token**: Automatically uses `GITHUB_TOKEN` environment variable
+- **Private Repository Access**: Requires token with `repo` scope for private repositories
+- **Public Repository Access**: Works without authentication for public repositories
+- **Rate Limiting**: Respects GitHub API rate limits with proper retry logic
+
+**Supported Repository URI Formats:**
+- `https://github.com/owner/repo` - Main branch
+- `https://github.com/owner/repo/tree/branch` - Specific branch
+- `https://github.com/owner/repo.git` - Git URL format
+- `git@github.com:owner/repo.git` - SSH URL format (converted to HTTPS)
+
+**Individual Agent URI Formats:**
+- `https://raw.githubusercontent.com/owner/repo/branch/path/agent.agent.md` - GitHub raw files
+- `https://github.com/owner/repo/raw/branch/path/agent.agent.md` - GitHub raw files (alternative)
+- `https://api.github.com/repos/owner/repo/contents/path/agent.agent.md` - GitHub API (auto-decoded)
+- `https://your-domain.com/path/agent.agent.md` - Any HTTPS URL
 
 ### Schedule-based Activation
 
