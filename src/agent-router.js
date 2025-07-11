@@ -50,7 +50,7 @@ async function handleEventBasedActivation(config) {
     await router.loadAgents();
     
     // Get agents triggered by current event
-    const triggeredAgents = router.getTriggeredAgents();
+    const triggeredAgents = await router.getTriggeredAgents();
     
     if (triggeredAgents.length === 0) {
       core.info('⏭️ No agents triggered by current event');

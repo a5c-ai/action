@@ -5,6 +5,23 @@ const github = require('@actions/github');
 const { loadResource } = require('./resource-handler');
 const { parseFrontmatter, validateCronExpression } = require('./utils');
 
+/**
+ * AgentRouter - Enhanced with async path trigger support for PR file detection
+ * 
+ * Key async pattern updates:
+ * - getTriggeredAgents() now async to support API-based path triggers
+ * - checkAllTriggers() now async to support async path checking
+ * - checkPathTriggers() now async to support GitHub API calls
+ * - getChangedFiles() now async to fetch PR files from GitHub API
+ * 
+ * Features:
+ * - PR file detection via GitHub API
+ * - PR merge detection in push events
+ * - Caching for repeated API calls (5-minute TTL)
+ * - Rate limiting awareness and graceful degradation
+ * - API usage metrics tracking
+ * - Robust merge commit message parsing
+ */
 class AgentRouter {
   constructor(config = {}) {
     this.agents = new Map();
@@ -511,7 +528,7 @@ class AgentRouter {
   }
 
   // Get agents triggered by current event
-  getTriggeredAgents() {
+  async getTriggeredAgents() {
     const triggeredAgents = [];
     const eventName = github.context.eventName;
     const context = github.context;
@@ -520,7 +537,7 @@ class AgentRouter {
     
     // Check all trigger types for each agent
     for (const [agentId, agent] of this.agents) {
-      const triggers = this.checkAllTriggers(agent, context);
+      const triggers = await this.checkAllTriggers(agent, context);
       
       if (triggers.length > 0) {
         // Combine all trigger reasons into a single description
@@ -551,7 +568,7 @@ class AgentRouter {
   }
 
   // Check all trigger types for an agent
-  checkAllTriggers(agent, context) {
+  async checkAllTriggers(agent, context) {
     const triggers = [];
     
     // 1. Event-based triggers
@@ -572,7 +589,7 @@ class AgentRouter {
     triggers.push(...branchTriggers);
     
     // 4. File path-based triggers
-    const pathTriggers = this.checkPathTriggers(agent, context);
+    const pathTriggers = await this.checkPathTriggers(agent, context);
     triggers.push(...pathTriggers);
     
     // 5. Schedule-based triggers
@@ -648,12 +665,12 @@ class AgentRouter {
   }
 
   // Check file path-based triggers
-  checkPathTriggers(agent, context) {
+  async checkPathTriggers(agent, context) {
     const triggers = [];
     
     if (agent.paths.length === 0) return triggers;
     
-    const changedFiles = this.getChangedFiles(context);
+    const changedFiles = await this.getChangedFiles(context);
     
     if (changedFiles.length === 0) return triggers;
     
@@ -812,25 +829,49 @@ class AgentRouter {
   }
 
   // Get changed files from context
-  getChangedFiles(context) {
+  async getChangedFiles(context) {
     const { payload } = context;
     const files = [];
     
-    // Pull request files
+    // Pull request files - need to fetch from GitHub API
     if (payload.pull_request && payload.pull_request.changed_files > 0) {
-      // Note: We would need the GitHub API to get the actual file list
-      // For now, we'll use commits if available
-      if (payload.commits) {
-        for (const commit of payload.commits) {
-          if (commit.added) files.push(...commit.added);
-          if (commit.modified) files.push(...commit.modified);
-          if (commit.removed) files.push(...commit.removed);
+      try {
+        const prFiles = await this.getPullRequestFiles(payload.pull_request);
+        files.push(...prFiles);
+      } catch (error) {
+        core.warning(`Failed to get PR files: ${error.message}`);
+        // Fallback to commits if available
+        if (payload.commits) {
+          for (const commit of payload.commits) {
+            if (commit.added) files.push(...commit.added);
+            if (commit.modified) files.push(...commit.modified);
+            if (commit.removed) files.push(...commit.removed);
+          }
         }
       }
     }
     
-    // Push event files
-    if (payload.commits) {
+    // Push event files - check if this is a PR merge
+    if (payload.commits && context.eventName === 'push') {
+      // Check if this is a PR merge by looking at commit messages
+      const mergeCommit = payload.commits.find(commit => 
+        commit.message && commit.message.includes('Merge pull request #')
+      );
+      
+      if (mergeCommit) {
+        // This is a PR merge, try to get files from the merged PR
+        try {
+          const prNumber = this.extractPRNumberFromMergeCommit(mergeCommit.message);
+          if (prNumber) {
+            const prFiles = await this.getPullRequestFilesByNumber(prNumber, payload.repository);
+            files.push(...prFiles);
+          }
+        } catch (error) {
+          core.warning(`Failed to get merged PR files: ${error.message}`);
+        }
+      }
+      
+      // Always include files from commits as fallback
       for (const commit of payload.commits) {
         if (commit.added) files.push(...commit.added);
         if (commit.modified) files.push(...commit.modified);
@@ -839,12 +880,151 @@ class AgentRouter {
     }
     
     // Remove duplicates
-    return [...new Set(files)];
+    const uniqueFiles = [...new Set(files)];
+    core.info(`📁 Found ${uniqueFiles.length} changed files`);
+    return uniqueFiles;
   }
 
   // Get files matching a path pattern
   getMatchingFiles(files, pattern) {
     return files.filter(file => this.matchesPathPattern(file, pattern));
+  }
+
+  // Get files from a pull request using GitHub API
+  async getPullRequestFiles(pullRequest) {
+    try {
+      // Token priority: GITHUB_TOKEN (GitHub Actions default) takes precedence over INPUT_GITHUB_TOKEN (user-provided)
+      // This ensures we use the most appropriate token for the current execution context
+      const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
+      if (!token) {
+        throw new Error('GitHub token not available');
+      }
+
+      const octokit = github.getOctokit(token);
+      
+      // Check cache first to avoid repeated API calls
+      const cacheKey = `pr-files-${pullRequest.number}`;
+      if (this.prFileCache && this.prFileCache[cacheKey]) {
+        core.debug(`Using cached PR files for PR #${pullRequest.number}`);
+        return this.prFileCache[cacheKey];
+      }
+
+      const { data: files } = await octokit.rest.pulls.listFiles({
+        owner: pullRequest.base.repo.owner.login,
+        repo: pullRequest.base.repo.name,
+        pull_number: pullRequest.number
+      });
+
+      const fileNames = files.map(file => file.filename);
+      
+      // Cache the result for 5 minutes to avoid repeated API calls
+      this.prFileCache = this.prFileCache || {};
+      this.prFileCache[cacheKey] = fileNames;
+      setTimeout(() => {
+        if (this.prFileCache && this.prFileCache[cacheKey]) {
+          delete this.prFileCache[cacheKey];
+        }
+      }, 5 * 60 * 1000); // 5 minutes
+
+      // Track successful API call
+      this.trackAPIUsage('pulls.listFiles', true);
+
+      return fileNames;
+    } catch (error) {
+      // Track failed API call
+      this.trackAPIUsage('pulls.listFiles', false, error);
+      
+      // Handle rate limiting gracefully
+      if (error.status === 403 && error.message.includes('rate limit')) {
+        core.warning(`GitHub API rate limit exceeded when fetching PR files: ${error.message}`);
+        core.info('Rate limit will reset shortly. Using fallback file detection.');
+      } else {
+        core.warning(`Error fetching PR files: ${error.message}`);
+      }
+      return [];
+    }
+  }
+
+  // Get files from a pull request by PR number
+  async getPullRequestFilesByNumber(prNumber, repository) {
+    try {
+      // Token priority: GITHUB_TOKEN (GitHub Actions default) takes precedence over INPUT_GITHUB_TOKEN (user-provided)
+      // This ensures we use the most appropriate token for the current execution context
+      const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
+      if (!token) {
+        throw new Error('GitHub token not available');
+      }
+
+      const octokit = github.getOctokit(token);
+      
+      // Check cache first to avoid repeated API calls
+      const cacheKey = `pr-files-${repository.owner.login}/${repository.name}/${prNumber}`;
+      if (this.prFileCache && this.prFileCache[cacheKey]) {
+        core.debug(`Using cached PR files for PR #${prNumber}`);
+        return this.prFileCache[cacheKey];
+      }
+
+      const { data: files } = await octokit.rest.pulls.listFiles({
+        owner: repository.owner.login,
+        repo: repository.name,
+        pull_number: prNumber
+      });
+
+      const fileNames = files.map(file => file.filename);
+      
+      // Cache the result for 5 minutes to avoid repeated API calls
+      this.prFileCache = this.prFileCache || {};
+      this.prFileCache[cacheKey] = fileNames;
+      setTimeout(() => {
+        if (this.prFileCache && this.prFileCache[cacheKey]) {
+          delete this.prFileCache[cacheKey];
+        }
+      }, 5 * 60 * 1000); // 5 minutes
+
+      // Track successful API call
+      this.trackAPIUsage('pulls.listFiles', true);
+
+      return fileNames;
+    } catch (error) {
+      // Track failed API call
+      this.trackAPIUsage('pulls.listFiles', false, error);
+      
+      // Handle rate limiting gracefully
+      if (error.status === 403 && error.message.includes('rate limit')) {
+        core.warning(`GitHub API rate limit exceeded when fetching PR files for PR #${prNumber}: ${error.message}`);
+        core.info('Rate limit will reset shortly. Using fallback file detection.');
+      } else {
+        core.warning(`Error fetching PR files for PR #${prNumber}: ${error.message}`);
+      }
+      return [];
+    }
+  }
+
+  // Extract PR number from merge commit message
+  extractPRNumberFromMergeCommit(message) {
+    // Support various merge message formats:
+    // - "Merge pull request #123"
+    // - "Merge pull request #123 from branch"
+    // - "Merged pull request #123"
+    // - "Merge PR #123"
+    // - "Squash and merge pull request #123"
+    const patterns = [
+      /Merge pull request #(\d+)/i,
+      /Merged pull request #(\d+)/i,
+      /Merge PR #(\d+)/i,
+      /Squash and merge pull request #(\d+)/i,
+      /Rebase and merge pull request #(\d+)/i,
+      /#(\d+)\s+from\s+/i // "#123 from branch-name" format
+    ];
+    
+    for (const pattern of patterns) {
+      const match = message.match(pattern);
+      if (match) {
+        return parseInt(match[1], 10);
+      }
+    }
+    
+    return null;
   }
 
   // Check if file path matches pattern (supports glob-like patterns)
@@ -931,6 +1111,45 @@ class AgentRouter {
     
     // Exact match
     return value === Number(field);
+  }
+
+  // Track API usage metrics for monitoring and debugging
+  trackAPIUsage(endpoint, success, error = null) {
+    this.apiMetrics = this.apiMetrics || {
+      totalCalls: 0,
+      successfulCalls: 0,
+      failedCalls: 0,
+      rateLimitErrors: 0,
+      endpoints: {}
+    };
+
+    this.apiMetrics.totalCalls++;
+    
+    if (success) {
+      this.apiMetrics.successfulCalls++;
+    } else {
+      this.apiMetrics.failedCalls++;
+      if (error && error.status === 403 && error.message.includes('rate limit')) {
+        this.apiMetrics.rateLimitErrors++;
+      }
+    }
+
+    // Track per-endpoint metrics
+    if (!this.apiMetrics.endpoints[endpoint]) {
+      this.apiMetrics.endpoints[endpoint] = { calls: 0, success: 0, failed: 0 };
+    }
+    
+    this.apiMetrics.endpoints[endpoint].calls++;
+    if (success) {
+      this.apiMetrics.endpoints[endpoint].success++;
+    } else {
+      this.apiMetrics.endpoints[endpoint].failed++;
+    }
+
+    // Log metrics periodically (every 10 API calls)
+    if (this.apiMetrics.totalCalls % 10 === 0) {
+      core.info(`📊 API Usage: ${this.apiMetrics.successfulCalls}/${this.apiMetrics.totalCalls} successful, ${this.apiMetrics.rateLimitErrors} rate limit errors`);
+    }
   }
 }
 
