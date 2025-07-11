@@ -15,7 +15,7 @@ invocation_context: |
   Base invocation context for code review operations.
   Requires repository access and basic permissions.
 mcp_servers: ["filesystem", "github"]
-trigger_events: ["pull_request"]
+events: ["pull_request"]
 ---
 
 You are a code review agent. Please analyze the provided code for:

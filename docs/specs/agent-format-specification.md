@@ -91,7 +91,7 @@ Each agent file consists of two main sections:
   - Example: `true`
 
 #### Trigger Configuration
-- **`trigger_events`** (array, optional): GitHub events that trigger the agent
+- **`events`** (array, optional): GitHub events that trigger the agent
   - Supported events: `push`, `pull_request`, `issues`, `schedule`, `workflow_dispatch`
   - Example: `["pull_request", "push"]`
 
@@ -99,14 +99,14 @@ Each agent file consists of two main sections:
   - Used for @-mention based activation
   - Example: `["@code-review", "@review-code", "@ai-review"]`
 
-- **`trigger_labels`** (array, optional): GitHub labels that trigger the agent
+- **`labels`** (array, optional): GitHub labels that trigger the agent
   - Example: `["security", "critical", "high-risk"]`
 
-- **`trigger_branches`** (array, optional): Branch patterns that trigger the agent
+- **`branches`** (array, optional): Branch patterns that trigger the agent
   - Supports glob patterns
   - Example: `["main", "develop", "feature/*"]`
 
-- **`trigger_paths`** (array, optional): File path patterns that trigger the agent
+- **`paths`** (array, optional): File path patterns that trigger the agent
   - Supports glob patterns
   - Example: `["src/**/*.js", "security/**/*"]`
 
@@ -297,8 +297,8 @@ description: Advanced security review with threat analysis
 priority: 100
 mentions: ["@advanced-security", "@threat-analysis"]
 mcp_servers: ["filesystem", "github", "search", "memory"]
-trigger_events: ["pull_request", "push", "schedule"]
-trigger_labels: ["security", "critical", "high-risk"]
+events: ["pull_request", "push", "schedule"]
+labels: ["security", "critical", "high-risk"]
 activation_cron: "0 2 * * 1"
 max_turns: 20
 timeout: 30

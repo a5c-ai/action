@@ -10,8 +10,8 @@ usage_context: |
   Advanced security review agent that builds upon security-reviewer capabilities.
   Performs AI-powered threat analysis and advanced security pattern detection.
 mcp_servers: ["filesystem", "github", "search", "memory"]
-trigger_events: ["pull_request", "push", "schedule"]
-trigger_labels: ["security", "critical", "high-risk"]
+events: ["pull_request", "push", "schedule"]
+labels: ["security", "critical", "high-risk"]
 activation_cron: "0 2 * * 1"
 max_turns: 20
 timeout: 30

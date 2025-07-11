@@ -19,14 +19,14 @@ invocation_context: |
   - Comments mentioning @security-reviewer or @sec-review
   - Pull requests with security-related labels
   - Commits modifying security-sensitive files
-trigger_events:
+events:
   - pull_request
   - push
-trigger_labels:
+labels:
   - security
   - vulnerability
   - audit
-trigger_files:
+paths:
   - "**/*.py"
   - "**/*.js"
   - "**/*.ts"

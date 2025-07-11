@@ -541,8 +541,7 @@ function mergeAgentConfigs(baseConfig, childConfig) {
   const overridableFields = [
     'name', 'version', 'category', 'description', 'model', 'max_turns', 'timeout',
     'priority', 'mentions', 'usage_context', 'invocation_context', 'cli_command',
-    'mcp_servers', 'trigger_events', 'trigger_labels', 'trigger_branches', 
-    'trigger_files', 'trigger_schedule', 'labels', 'branches', 'paths', 
+    'mcp_servers', 'events', 'labels', 'branches', 'paths', 
     'activation_cron', 'agent_discovery', 'prompt_uri', 'prompt_content'
   ];
   
@@ -555,7 +554,7 @@ function mergeAgentConfigs(baseConfig, childConfig) {
   }
   
   // Special handling for array fields - merge instead of override
-  const arrayFields = ['trigger_events', 'trigger_labels', 'trigger_branches', 'trigger_files', 'mcp_servers'];
+  const arrayFields = ['events', 'labels', 'branches', 'paths', 'mcp_servers'];
   for (const field of arrayFields) {
     if (baseConfig[field] && childConfig[field]) {
       // Merge arrays and remove duplicates

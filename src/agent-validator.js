@@ -71,7 +71,7 @@ const agentConfigSchema = {
       },
       maxItems: 20
     },
-    trigger_events: {
+    events: {
       type: 'array',
       items: {
         type: 'string',
@@ -79,7 +79,7 @@ const agentConfigSchema = {
       },
       maxItems: 10
     },
-    trigger_labels: {
+    labels: {
       type: 'array',
       items: {
         type: 'string',
@@ -87,7 +87,7 @@ const agentConfigSchema = {
       },
       maxItems: 20
     },
-    trigger_branches: {
+    branches: {
       type: 'array',
       items: {
         type: 'string',
@@ -95,7 +95,7 @@ const agentConfigSchema = {
       },
       maxItems: 20
     },
-    trigger_paths: {
+    paths: {
       type: 'array',
       items: {
         type: 'string',

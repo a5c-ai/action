@@ -10,8 +10,8 @@ usage_context: |
   Specialized security review agent that builds upon base review capabilities.
   Performs comprehensive security analysis and vulnerability detection.
 mcp_servers: ["filesystem", "github", "search"]
-trigger_events: ["pull_request", "push"]
-trigger_labels: ["security", "critical"]
+events: ["pull_request", "push"]
+labels: ["security", "critical"]
 ---
 
 {{base-prompt}}
