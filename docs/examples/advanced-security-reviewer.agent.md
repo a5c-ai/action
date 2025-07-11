@@ -5,7 +5,7 @@ from: security-reviewer
 category: security
 description: Advanced security review agent with AI-powered threat detection
 priority: 100
-mentions: "@advanced-security,@threat-analysis"
+mentions: ["@advanced-security", "@threat-analysis"]
 usage_context: |
   Advanced security review agent that builds upon security-reviewer capabilities.
   Performs AI-powered threat analysis and advanced security pattern detection.
