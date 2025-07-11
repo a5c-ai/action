@@ -33,6 +33,8 @@ remote_agents:
         alias: "developer-agent"
       - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/code-review-agent.agent.md"
         alias: "code-review-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/news/news-aggregator-agent.agent.md"
+        alias: "daily-news-aggregator"
 
 # Override agent discovery settings
 # agent_discovery:
