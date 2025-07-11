@@ -288,6 +288,13 @@ you have access to other repositories in this organization. (you might need to c
 
 if you were given by a backlog file/item, you should follow the instructions in the file/item (perform the actual request/work) and then update the backlog file/item with the results.
 
+if you were triggered by a mention in an comment in an issue or PR, you should, in a new comment, respond in the issue or PR in addition to the rest of the completion instructions:
+1. when you are about to actually perform the action, after you have reviewed the context and determined the action to take. with a small plan and description of the action you are about to take.
+2. when you are done, after you have completed the action. with a small summary of the action you took and the results.
+3. if you encountered issue that made you deviate from the original plan you submitted when you started. with a small summary of the issue and the action you took to resolve it.
+
+Include your signature at the end of the comment (By: [your name] (agent+[your name or id]@a5c.ai) - https://a5c.ai/agents/[your name or id]).
+
 ## Completion - Operational Instructions
 
 if you are triggered by a pull request, you should add a comment to the pull request with your review.
