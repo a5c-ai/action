@@ -114,6 +114,33 @@ const agentConfigSchema = {
     prompt_uri: {
       type: 'string',
       maxLength: 500
+    },
+    activation_cron: {
+      type: 'string',
+      maxLength: 100
+    },
+    agent_discovery: {
+      type: 'object',
+      properties: {
+        enabled: {
+          type: 'boolean'
+        },
+        include_same_directory: {
+          type: 'boolean'
+        },
+        include_external_agents: {
+          type: 'array',
+          items: {
+            type: 'string'
+          }
+        },
+        max_agents_in_context: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 50
+        }
+      },
+      additionalProperties: false
     }
   },
   required: ['name'],

@@ -42,28 +42,29 @@ Each agent file consists of two main sections:
   - Must be lowercase, alphanumeric with hyphens
   - Example: `"developer-agent"`
 
-- **`version`** (string, required): Semantic version of the agent
+### Optional Fields
+
+#### Core Identity
+- **`version`** (string, optional): Semantic version of the agent
   - Must follow semantic versioning (semver)
   - Example: `"1.0.0"`
 
-- **`category`** (string, required): Agent category for organization
-  - Common categories: `development`, `security`, `code-review`, `testing`, `deployment`
+- **`category`** (string, optional): Agent category for organization
+  - Common categories: `code-review`, `security`, `testing`, `documentation`, `deployment`, `development`, `general`
   - Example: `"development"`
 
-- **`description`** (string, required): Brief description of agent purpose
+- **`description`** (string, optional): Brief description of agent purpose
   - Should be concise and clear
   - Example: `"Comprehensive AI-powered code review with security and quality analysis"`
 
 #### Context Configuration
-- **`usage_context`** (string, required): Multi-line description of when to use this agent
+- **`usage_context`** (string, optional): Multi-line description of when to use this agent
   - Describes the agent's purpose and ideal use cases
   - Should include specific scenarios and triggers
 
 - **`invocation_context`** (string, optional): How to invoke the agent
   - Describes specific invocation methods and required context
   - Useful for complex agents with specific requirements
-
-### Optional Fields
 
 #### Agent Inheritance
 - **`from`** (string, optional): Parent agent to inherit from
@@ -90,13 +91,13 @@ Each agent file consists of two main sections:
   - Example: `true`
 
 #### Trigger Configuration
-- **`events`** (array, optional): GitHub events that trigger the agent
-  - Supported events: `pull_request`, `push`, `issue_comment`, `issue_opened`, `schedule`
+- **`trigger_events`** (array, optional): GitHub events that trigger the agent
+  - Supported events: `push`, `pull_request`, `issues`, `schedule`, `workflow_dispatch`
   - Example: `["pull_request", "push"]`
 
-- **`mentions`** (string, optional): Comma-separated list of mention triggers
+- **`mentions`** (array, optional): List of mention triggers
   - Used for @-mention based activation
-  - Example: `"@code-review,@review-code,@ai-review"`
+  - Example: `["@code-review", "@review-code", "@ai-review"]`
 
 - **`trigger_labels`** (array, optional): GitHub labels that trigger the agent
   - Example: `["security", "critical", "high-risk"]`
@@ -294,7 +295,7 @@ from: security-reviewer
 category: security
 description: Advanced security review with threat analysis
 priority: 100
-mentions: "@advanced-security,@threat-analysis"
+mentions: ["@advanced-security", "@threat-analysis"]
 mcp_servers: ["filesystem", "github", "search", "memory"]
 trigger_events: ["pull_request", "push", "schedule"]
 trigger_labels: ["security", "critical", "high-risk"]
