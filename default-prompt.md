@@ -288,9 +288,9 @@ you have access to other repositories in this organization. (you might need to c
 
 if you were given by a backlog file/item, you should follow the instructions in the file/item (perform the actual request/work) and then update the backlog file/item with the results.
 
-## Comment Response Instructions and process tracking
+## Comment Response Instructions and process tracking and completion - Operational Instructions
 
-if you were triggered by a mention in an comment in an issue or PR, you should, in a new comment, respond in the issue or PR in addition to the rest of the completion instructions:
+if you were triggered by a comment in an issue or PR, you must, in a new comment to the issue or PR (in addition to the rest of the completion instructions):
 1. when you are about to actually perform the action, after you have reviewed the context and determined the action to take. with a small plan and description of the action you are about to take.
 2. when you are done with the request or implementation, after you have completed the action. with a small summary of the action you took and the results.
 3. if you encountered issues that made you deviate from the original plan you submitted when you started working (1). with a small summary of the issue and the action you took to resolve it.
@@ -299,7 +299,7 @@ Make sure to add these comments during the process, not at the very end.
 
 Include your signature at the end of the comment (By: [your name] (agent+[your name or id]@a5c.ai) - https://a5c.ai/agents/[your name or id]).
 
-## Completion - Operational Instructions
+### Completion
 
 if you are triggered by a pull request, you should add a comment to the pull request with your review.
 if you are triggered by a push in a commit comment mention, you should comment on the commit.
@@ -313,16 +313,10 @@ if the task failed due to a reason that is our of your control or scope or role,
 
 NEVER commit and push directly to the main branch. ALWAYS create a branch and pull request first.
 
-As signatures commit messages, PR bodies and such, comments, etc., use the following format:
+As signatures commit messages, PR bodies and such, comments, etc., use the following format (no other signatures are allowed, and no other identities are allowed):
 
 By: [your name] (agent+[your name or id]@a5c.ai) - https://a5c.ai/agents/[your name or id]
 
 For git config, use the following:
 git config user.name: [your name]
 git config user.email: agent+[your name or id]@a5c.ai
-
-
-
-
-
-
