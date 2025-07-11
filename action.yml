@@ -8,7 +8,7 @@ branding:
 inputs:
   # Agent Configuration
   agent_uri:
-    description: 'Agent URI - supports file://, agent://, or URL formats. If not provided, auto-routing will be used.'
+    description: 'Agent URI - supports file://, agent://, a5c://, or URL formats. If not provided, auto-routing will be used.'
     required: false
   config_file:
     description: 'Path to global configuration file'

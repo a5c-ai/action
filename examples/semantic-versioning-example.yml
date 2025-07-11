@@ -1,0 +1,35 @@
+# Example configuration demonstrating semantic versioning support
+# This shows how to use the new a5c:// URI scheme for remote agents
+
+remote_agents:
+  enabled: true
+  cache_timeout: 120
+  retry_attempts: 5
+  retry_delay: 2000
+  sources:
+    individual:
+      # A5C URI with semantic versioning - loads the latest 1.x.x version
+      - uri: "a5c://a5c-ai/agents/security/security-scanner@^1.0.0"
+        alias: "security-scanner"
+      
+      # A5C URI with exact version
+      - uri: "a5c://a5c-ai/agents/code-review/reviewer@1.2.3"
+        alias: "code-reviewer"
+      
+      # A5C URI with range specification
+      - uri: "a5c://a5c-ai/agents/testing/test-runner@>=2.0.0 <3.0.0"
+        alias: "test-runner"
+      
+      # A5C URI with latest patch version
+      - uri: "a5c://a5c-ai/agents/deployment/deployer@~1.5.0"
+        alias: "deployer"
+      
+      # A5C URI with beta versions included
+      - uri: "a5c://a5c-ai/agents/experimental/ai-reviewer@^2.0.0-beta"
+        alias: "ai-reviewer"
+    
+    repositories:
+      # Repository-based agent loading still works as before
+      - uri: "https://github.com/a5c-ai/community-agents"
+        pattern: "agents/**/*.agent.md"
+        branch: "main"

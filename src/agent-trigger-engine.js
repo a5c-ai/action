@@ -26,6 +26,69 @@ class AgentRouter {
   constructor(config = {}) {
     this.agents = new Map();
     this.config = config;
+    
+    // Enhanced rate limiting
+    this.rateLimiter = {
+      requests: new Map(),
+      windowMs: 60000, // 1 minute
+      maxRequests: 60, // GitHub API rate limit considerations
+      
+      isAllowed(key) {
+        const now = Date.now();
+        const windowStart = now - this.windowMs;
+        
+        if (!this.requests.has(key)) {
+          this.requests.set(key, []);
+        }
+        
+        const requests = this.requests.get(key);
+        const validRequests = requests.filter(time => time > windowStart);
+        this.requests.set(key, validRequests);
+        
+        if (validRequests.length >= this.maxRequests) {
+          return false;
+        }
+        
+        validRequests.push(now);
+        return true;
+      }
+    };
+    
+    // Enhanced caching with TTL
+    this.cache = new Map();
+    this.cacheTTL = 300000; // 5 minutes
+    
+    // Clean cache periodically
+    setInterval(() => {
+      this.cleanCache();
+    }, 60000); // Clean every minute
+  }
+
+  // Clean expired cache entries
+  cleanCache() {
+    const now = Date.now();
+    for (const [key, entry] of this.cache.entries()) {
+      if (now - entry.timestamp > this.cacheTTL) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  // Get from cache with TTL check
+  getFromCache(key) {
+    const entry = this.cache.get(key);
+    if (entry && (Date.now() - entry.timestamp) < this.cacheTTL) {
+      return entry.data;
+    }
+    return null;
+  }
+
+  // Set cache entry
+  setCache(key, data) {
+    this.cache.set(key, {
+      data: data,
+      timestamp: Date.now()
+    });
   }
 
   // Load all agents from various sources
@@ -98,12 +161,37 @@ class AgentRouter {
       const { uri, alias } = agentConfig;
       core.info(`📥 Loading individual agent from: ${uri}`);
       
-      // Load agent content using resource handler
-      const content = await loadResource(uri, {
-        cache_timeout: remoteConfig.cache_timeout || 60,
-        retry_attempts: remoteConfig.retry_attempts || 3,
-        retry_delay: remoteConfig.retry_delay || 1000
-      });
+      // Security: Validate URI format
+      if (!uri || typeof uri !== 'string') {
+        throw new Error('Invalid URI format');
+      }
+      
+      // Security: Validate allowed URI schemes
+      const allowedSchemes = ['https:', 'http:', 'file:', 'a5c:'];
+      const hasValidScheme = allowedSchemes.some(scheme => uri.startsWith(scheme));
+      if (!hasValidScheme) {
+        throw new Error('Invalid URI scheme');
+      }
+      
+      let content;
+      
+      // Handle A5C URIs with semantic versioning
+      if (uri.startsWith('a5c://')) {
+        const { loadA5CAgent } = require('./agent-loader');
+        content = await loadA5CAgent(uri);
+      } else {
+        // Load agent content using resource handler
+        content = await loadResource(uri, {
+          cache_timeout: remoteConfig.cache_timeout || 60,
+          retry_attempts: remoteConfig.retry_attempts || 3,
+          retry_delay: remoteConfig.retry_delay || 1000
+        });
+      }
+
+      // Validate content size
+      if (content.length > 1024 * 1024) { // 1MB limit
+        throw new Error('Agent content too large');
+      }
 
       const agent = this.parseRemoteAgent(content, uri, alias);
       
@@ -191,10 +279,29 @@ class AgentRouter {
     try {
       const { owner, repo, branch = 'main' } = repoInfo;
       
-      // Get GitHub token
+      // Rate limiting check
+      const rateLimitKey = `github-api:${owner}/${repo}`;
+      if (!this.rateLimiter.isAllowed(rateLimitKey)) {
+        throw new Error('Rate limit exceeded for GitHub API calls');
+      }
+      
+      // Check cache first
+      const cacheKey = `repo-agents:${owner}/${repo}/${branch}`;
+      const cachedResult = this.getFromCache(cacheKey);
+      if (cachedResult) {
+        core.debug(`Using cached repository agents for ${owner}/${repo}`);
+        return cachedResult;
+      }
+      
+      // Get GitHub token with scope validation
       const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
       if (!token) {
         throw new Error('GitHub token not available for repository access');
+      }
+      
+      // Validate token format (basic validation)
+      if (!token.startsWith('ghp_') && !token.startsWith('gho_') && !token.startsWith('ghu_') && !token.startsWith('ghs_')) {
+        throw new Error('Invalid GitHub token format');
       }
 
       // Create GitHub API client
@@ -236,12 +343,17 @@ class AgentRouter {
       core.debug(`Found ${agentFiles.length} agent files after filtering`);
 
       // Convert to our format
-      return agentFiles.map(file => ({
+      const result = agentFiles.map(file => ({
         path: file.path,
         name: path.basename(file.path, '.agent.md'),
         download_url: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${file.path}`,
         sha: file.sha
       }));
+      
+      // Cache the result
+      this.setCache(cacheKey, result);
+      
+      return result;
     } catch (error) {
       if (error.status === 404) {
         if (error.message && error.message.includes('ref')) {
@@ -899,6 +1011,11 @@ class AgentRouter {
       if (!token) {
         throw new Error('GitHub token not available');
       }
+      
+      // Validate token format (basic validation)
+      if (!token.startsWith('ghp_') && !token.startsWith('gho_') && !token.startsWith('ghu_') && !token.startsWith('ghs_')) {
+        core.warning('GitHub token format validation failed - proceeding with caution');
+      }
 
       const octokit = github.getOctokit(token);
       
@@ -953,6 +1070,11 @@ class AgentRouter {
       const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
       if (!token) {
         throw new Error('GitHub token not available');
+      }
+      
+      // Validate token format (basic validation)
+      if (!token.startsWith('ghp_') && !token.startsWith('gho_') && !token.startsWith('ghu_') && !token.startsWith('ghs_')) {
+        core.warning('GitHub token format validation failed - proceeding with caution');
       }
 
       const octokit = github.getOctokit(token);
