@@ -330,10 +330,21 @@ function validateFromField(fromValue) {
     
     // Additional validation for a5c:// URIs
     if (fromValue.startsWith('a5c://')) {
-      const a5cUriPattern = /^a5c:\/\/[a-zA-Z0-9-_]+\/[a-zA-Z0-9-_]+\/.+@.+$/;
+      const a5cUriPattern = /^a5c:\/\/[a-zA-Z0-9-_]+\/[a-zA-Z0-9-_]+\/[a-zA-Z0-9-_/.]+@[a-zA-Z0-9-_^~>=<. ]+$/;
       if (!a5cUriPattern.test(fromValue)) {
         result.isValid = false;
-        result.errors.push(`Invalid A5C URI format: ${fromValue}. Expected format: a5c://org/repo/path/to/agent@version`);
+        result.errors.push(`Invalid A5C URI format. Expected format: a5c://org/repo/path/to/agent@version`);
+      } else {
+        // Extract and validate organization
+        const uriMatch = fromValue.match(/^a5c:\/\/([^\/]+)\/([^\/]+)\//);
+        if (uriMatch) {
+          const [, org, repo] = uriMatch;
+          const allowedOrgs = ['a5c-ai', 'trusted-org'];
+          if (!allowedOrgs.includes(org)) {
+            result.isValid = false;
+            result.errors.push(`Organization not in allowlist: ${org}`);
+          }
+        }
       }
     }
   }
@@ -474,11 +485,101 @@ function logValidationErrors(validationResult, context = '') {
   }
 }
 
+/**
+ * Validate A5C URI format and security
+ * @param {string} uri - The A5C URI to validate
+ * @returns {object} - Validation result
+ */
+function validateA5CUri(uri) {
+  const result = {
+    isValid: true,
+    errors: []
+  };
+
+  try {
+    // Basic format validation
+    const uriPattern = /^a5c:\/\/([a-zA-Z0-9-_]+)\/([a-zA-Z0-9-_]+)\/([a-zA-Z0-9-_/.]+)@([a-zA-Z0-9-_^~>=<. ]+)$/;
+    const match = uri.match(uriPattern);
+    
+    if (!match) {
+      result.isValid = false;
+      result.errors.push('Invalid A5C URI format');
+      return result;
+    }
+    
+    const [, org, repo, path, version] = match;
+    
+    // Validate organization allowlist
+    const allowedOrgs = ['a5c-ai', 'trusted-org'];
+    if (!allowedOrgs.includes(org)) {
+      result.isValid = false;
+      result.errors.push(`Organization not in allowlist: ${org}`);
+    }
+    
+    // Validate repository name
+    if (repo.length > 100) {
+      result.isValid = false;
+      result.errors.push('Repository name too long');
+    }
+    
+    // Validate path
+    if (path.length > 200) {
+      result.isValid = false;
+      result.errors.push('Agent path too long');
+    }
+    
+    // Validate version specification
+    if (version.length > 100) {
+      result.isValid = false;
+      result.errors.push('Version specification too long');
+    }
+    
+    // Check for suspicious patterns in path
+    const suspiciousPathPatterns = [
+      /\.\./,
+      /\/\.\//,
+      /^\//,
+      /\$\{/,
+      /\$\(/
+    ];
+    
+    for (const pattern of suspiciousPathPatterns) {
+      if (pattern.test(path)) {
+        result.isValid = false;
+        result.errors.push('Suspicious pattern in agent path');
+        break;
+      }
+    }
+    
+  } catch (error) {
+    result.isValid = false;
+    result.errors.push(`A5C URI validation error: ${error.message}`);
+  }
+  
+  return result;
+}
+
+/**
+ * Sanitize URI input to prevent injection
+ * @param {string} uri - The URI to sanitize
+ * @returns {string} - Sanitized URI
+ */
+function sanitizeUri(uri) {
+  if (typeof uri !== 'string') {
+    return '';
+  }
+  
+  // Remove potentially dangerous characters
+  return uri.replace(/[<>'"]/g, '');
+}
+
 module.exports = {
   validateAgentConfig,
   validateField,
   validateFromField,
   validatePromptContent,
   validateCliCommand,
+  validateA5CUri,
+  sanitizeUri,
   logValidationErrors
 };

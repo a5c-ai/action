@@ -8,6 +8,90 @@ const Handlebars = require('handlebars');
 const { validateAgentConfig, logValidationErrors } = require('./agent-validator');
 const semver = require('semver');
 
+// Security: Allowlist of permitted organizations for A5C URIs
+const ALLOWED_ORGS = ['a5c-ai', 'trusted-org'];
+
+// Rate limiting for API calls
+const rateLimiter = {
+  requests: new Map(),
+  windowMs: 60000, // 1 minute
+  maxRequests: 10,
+  
+  isAllowed(key) {
+    const now = Date.now();
+    const windowStart = now - this.windowMs;
+    
+    if (!this.requests.has(key)) {
+      this.requests.set(key, []);
+    }
+    
+    const requests = this.requests.get(key);
+    // Remove old requests outside the window
+    const validRequests = requests.filter(time => time > windowStart);
+    this.requests.set(key, validRequests);
+    
+    if (validRequests.length >= this.maxRequests) {
+      return false;
+    }
+    
+    validRequests.push(now);
+    return true;
+  }
+};
+
+/**
+ * Safely parse JSON with validation
+ * @param {string} jsonString - The JSON string to parse
+ * @returns {object} - Parsed JSON object
+ */
+function safeJsonParse(jsonString) {
+  try {
+    // Basic validation before parsing
+    if (typeof jsonString !== 'string') {
+      throw new Error('Input must be a string');
+    }
+    
+    // Check for excessively large JSON
+    if (jsonString.length > 1024 * 1024) { // 1MB limit
+      throw new Error('JSON payload too large');
+    }
+    
+    // Parse JSON
+    const parsed = JSON.parse(jsonString);
+    
+    // Validate the parsed result is an object or array
+    if (parsed === null || (typeof parsed !== 'object' && !Array.isArray(parsed))) {
+      throw new Error('Invalid JSON structure');
+    }
+    
+    return parsed;
+  } catch (error) {
+    core.warning(`🚫 JSON parsing failed: ${error.message}`);
+    throw new Error('Invalid JSON format');
+  }
+}
+
+/**
+ * Sanitize version specification to prevent injection
+ * @param {string} versionSpec - The version specification to sanitize
+ * @returns {string} - Sanitized version specification
+ */
+function sanitizeVersionSpec(versionSpec) {
+  if (typeof versionSpec !== 'string') {
+    throw new Error('Version specification must be a string');
+  }
+  
+  // Remove potentially dangerous characters
+  const sanitized = versionSpec.replace(/[<>"'`$\\]/g, '');
+  
+  // Limit length to prevent DoS
+  if (sanitized.length > 100) {
+    throw new Error('Version specification too long');
+  }
+  
+  return sanitized;
+}
+
 /**
  * Sanitize file path to prevent directory traversal attacks
  * @param {string} filePath - The file path to sanitize
@@ -51,34 +135,62 @@ async function loadA5CAgent(a5cUri) {
   // Parse A5C URI: a5c://org/repo/path/to/agent@^1.0.0
   const uriMatch = a5cUri.match(/^a5c:\/\/([^\/]+)\/([^\/]+)\/(.+)@(.+)$/);
   if (!uriMatch) {
-    throw new Error(`Invalid A5C URI format: ${a5cUri}. Expected format: a5c://org/repo/path/to/agent@version`);
+    throw new Error(`Invalid A5C URI format. Expected format: a5c://org/repo/path/to/agent@version`);
   }
   
   const [, org, repo, agentPath, versionSpec] = uriMatch;
   
-  // Validate version specification
-  if (!semver.validRange(versionSpec)) {
-    throw new Error(`Invalid version specification: ${versionSpec}`);
+  // Security: Validate organization against allowlist
+  if (!ALLOWED_ORGS.includes(org)) {
+    throw new Error(`Organization not in allowlist: ${org}`);
   }
   
-  core.debug(`🔍 Parsed A5C URI: org=${org}, repo=${repo}, path=${agentPath}, version=${versionSpec}`);
+  // Sanitize and validate version specification
+  const sanitizedVersionSpec = sanitizeVersionSpec(versionSpec);
+  if (!semver.validRange(sanitizedVersionSpec)) {
+    throw new Error(`Invalid version specification`);
+  }
+  
+  // Security: Validate repository and path format
+  if (!/^[a-zA-Z0-9-_]+$/.test(repo)) {
+    throw new Error('Invalid repository name format');
+  }
+  
+  if (!/^[a-zA-Z0-9-_/.]+$/.test(agentPath)) {
+    throw new Error('Invalid agent path format');
+  }
+  
+  core.debug(`🔍 Parsed A5C URI: org=${org}, repo=${repo}, path=${agentPath}`);
+  
+  // Rate limiting check
+  const rateLimitKey = `a5c:${org}/${repo}`;
+  if (!rateLimiter.isAllowed(rateLimitKey)) {
+    throw new Error('Rate limit exceeded for this repository');
+  }
   
   // Get available tags from repository
   const tagsUrl = `https://api.github.com/repos/${org}/${repo}/tags`;
   const tagsResponse = await loadResource(tagsUrl);
-  const tags = JSON.parse(tagsResponse);
+  const tags = safeJsonParse(tagsResponse);
+  
+  // Validate tags response structure
+  if (!Array.isArray(tags)) {
+    throw new Error('Invalid tags response format');
+  }
   
   // Find the best matching version
   const availableVersions = tags
+    .filter(tag => tag && typeof tag.name === 'string')
     .map(tag => tag.name.startsWith('v') ? tag.name.substring(1) : tag.name)
     .filter(version => semver.valid(version))
     .sort(semver.rcompare);
   
-  core.debug(`📋 Available versions: ${availableVersions.join(', ')}`);
+  core.debug(`📋 Found ${availableVersions.length} valid versions`);
   
-  const matchingVersion = semver.maxSatisfying(availableVersions, versionSpec);
+  const matchingVersion = semver.maxSatisfying(availableVersions, sanitizedVersionSpec);
   if (!matchingVersion) {
-    throw new Error(`No version found matching ${versionSpec}. Available versions: ${availableVersions.join(', ')}`);
+    // Security: Don't expose all available versions in error message
+    throw new Error(`No version found matching specification`);
   }
   
   const tagName = availableVersions.find(v => v === matchingVersion);
@@ -91,8 +203,20 @@ async function loadA5CAgent(a5cUri) {
   
   core.debug(`📋 Loading agent from: ${rawUrl}`);
   
-  // Load the agent content
-  return await loadResource(rawUrl);
+  try {
+    // Load the agent content with timeout
+    const content = await loadResource(rawUrl, { timeout: 30000 });
+    
+    // Validate content size
+    if (content.length > 1024 * 1024) { // 1MB limit
+      throw new Error('Agent content too large');
+    }
+    
+    return content;
+  } catch (error) {
+    core.warning(`Failed to load agent content: ${error.message}`);
+    throw new Error('Failed to load agent content');
+  }
 }
 
 // Load agent configuration from file path
@@ -490,6 +614,11 @@ function sanitizeTemplateInput(input) {
     return '';
   }
   
+  // Limit input size to prevent DoS
+  if (input.length > 100000) { // 100KB limit
+    throw new Error('Template input too large');
+  }
+  
   // Remove or escape potentially dangerous template syntax
   return input
     .replace(/\{\{[^}]*\}\}/g, (match) => {
@@ -502,7 +631,11 @@ function sanitizeTemplateInput(input) {
     })
     .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove script tags
     .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+\s*=/gi, ''); // Remove event handlers
+    .replace(/on\w+\s*=/gi, '') // Remove event handlers
+    .replace(/data:.*base64/gi, '') // Remove base64 data URIs
+    .replace(/vbscript:/gi, '') // Remove vbscript protocol
+    .replace(/eval\s*\(/gi, '') // Remove eval calls
+    .replace(/Function\s*\(/gi, ''); // Remove Function constructor
 }
 
 module.exports = {
