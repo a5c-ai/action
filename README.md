@@ -2,10 +2,11 @@
 
 A flexible GitHub Action for automated agent-based code operations using various CLI tools like Claude, Aider, and Cursor.
 
-## Other A5C Repositories:
+## Other A5C Repositories
 
 - [A5C Registry](https://github.com/a5c-ai/registry)
 - [A5C CLI](https://github.com/a5c-ai/cli)
+- [A5C Specification](https://github.com/a5c-ai/spec)
 
 ## Features
 
