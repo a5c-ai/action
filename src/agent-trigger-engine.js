@@ -57,11 +57,7 @@ class AgentRouter {
     // Enhanced caching with TTL
     this.cache = new Map();
     this.cacheTTL = 300000; // 5 minutes
-    
-    // Clean cache periodically
-    setInterval(() => {
-      this.cleanCache();
-    }, 60000); // Clean every minute
+    this.lastCacheClean = Date.now();
   }
 
   // Clean expired cache entries
@@ -76,8 +72,15 @@ class AgentRouter {
 
   // Get from cache with TTL check
   getFromCache(key) {
+    // Clean cache periodically (every 5 minutes) when accessed
+    const now = Date.now();
+    if (now - this.lastCacheClean > 300000) { // 5 minutes
+      this.cleanCache();
+      this.lastCacheClean = now;
+    }
+    
     const entry = this.cache.get(key);
-    if (entry && (Date.now() - entry.timestamp) < this.cacheTTL) {
+    if (entry && (now - entry.timestamp) < this.cacheTTL) {
       return entry.data;
     }
     return null;
