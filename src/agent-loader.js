@@ -5,6 +5,39 @@ const frontmatter = require('front-matter');
 const { loadPromptFromUri } = require('./prompt');
 const { loadResource } = require('./resource-handler');
 const Handlebars = require('handlebars');
+const { validateAgentConfig, logValidationErrors } = require('./agent-validator');
+
+/**
+ * Sanitize file path to prevent directory traversal attacks
+ * @param {string} filePath - The file path to sanitize
+ * @returns {string} - The sanitized path
+ */
+function sanitizePath(filePath) {
+  // Get the current working directory
+  const workingDir = process.cwd();
+  
+  // Resolve the path to get absolute path
+  const resolvedPath = path.resolve(filePath);
+  
+  // Check if the resolved path is within the working directory
+  if (!resolvedPath.startsWith(workingDir)) {
+    core.warning(`🚫 Blocked path traversal attempt: ${filePath}`);
+    throw new Error(`Path traversal attempt detected: ${filePath}`);
+  }
+  
+  // Additional security: block paths containing suspicious patterns
+  const suspiciousPatterns = ['..', '.git', '.env', 'node_modules', '.ssh', '.aws'];
+  const normalizedPath = filePath.toLowerCase().replace(/\\/g, '/');
+  
+  for (const pattern of suspiciousPatterns) {
+    if (normalizedPath.includes(pattern)) {
+      core.warning(`🚫 Blocked suspicious path pattern: ${filePath}`);
+      throw new Error(`Suspicious path pattern detected: ${filePath}`);
+    }
+  }
+  
+  return resolvedPath;
+}
 
 // Load agent configuration from file path
 async function loadAgentConfigFromFile(filePath) {
@@ -28,6 +61,13 @@ async function loadAgentConfigFromFile(filePath) {
   } else {
     // Use the body content as prompt
     config.prompt_content = parsed.body.trim();
+  }
+  
+  // Validate agent configuration
+  const validationResult = validateAgentConfig(config);
+  if (!validationResult.isValid) {
+    logValidationErrors(validationResult, filePath);
+    throw new Error(`Agent validation failed: ${validationResult.errors.join(', ')}`);
   }
   
   // Process inheritance if 'from' field is present
@@ -54,8 +94,9 @@ async function loadAgentConfig(agentUri) {
     const agentPath = `.a5c/agents/${agentId}.agent.md`;
     agentContent = fs.readFileSync(agentPath, 'utf8');
   } else {
-    // Assume it's a local file path
-    agentContent = fs.readFileSync(agentUri, 'utf8');
+    // Assume it's a local file path - sanitize to prevent directory traversal
+    const sanitizedPath = sanitizePath(agentUri);
+    agentContent = fs.readFileSync(sanitizedPath, 'utf8');
   }
   
   // Parse frontmatter
@@ -74,6 +115,13 @@ async function loadAgentConfig(agentUri) {
   } else {
     // Use the body content as prompt
     config.prompt_content = parsed.body.trim();
+  }
+  
+  // Validate agent configuration
+  const validationResult = validateAgentConfig(config);
+  if (!validationResult.isValid) {
+    logValidationErrors(validationResult, agentUri);
+    throw new Error(`Agent validation failed: ${validationResult.errors.join(', ')}`);
   }
   
   // Process inheritance if 'from' field is present
@@ -248,11 +296,12 @@ async function loadBaseAgent(fromSpec) {
     }
     baseAgentContent = fs.readFileSync(agentPath, 'utf8');
   } else if (fromSpec.includes('/') || fromSpec.includes('\\')) {
-    // File path
-    if (!fs.existsSync(fromSpec)) {
-      throw new Error(`Base agent file not found: ${fromSpec}`);
+    // File path - sanitize to prevent directory traversal
+    const sanitizedPath = sanitizePath(fromSpec);
+    if (!fs.existsSync(sanitizedPath)) {
+      throw new Error(`Base agent file not found: ${sanitizedPath}`);
     }
-    baseAgentContent = fs.readFileSync(fromSpec, 'utf8');
+    baseAgentContent = fs.readFileSync(sanitizedPath, 'utf8');
   } else {
     // Assume it's an agent ID - try multiple possible locations
     const possiblePaths = [
@@ -343,13 +392,21 @@ async function processPromptInheritance(childPrompt, basePrompt) {
   if (childPrompt.includes('{{base-prompt}}') || childPrompt.includes('{{{base-prompt}}}')) {
     core.debug(`🔄 Child prompt uses base-prompt variable, substituting...`);
     
+    // Sanitize inputs to prevent template injection
+    const sanitizedChildPrompt = sanitizeTemplateInput(childPrompt);
+    const sanitizedBasePrompt = sanitizeTemplateInput(basePrompt);
+    
     // Create template context with base-prompt
     const templateContext = {
-      'base-prompt': basePrompt
+      'base-prompt': sanitizedBasePrompt
     };
     
-    // Compile and render the template
-    const template = Handlebars.compile(childPrompt);
+    // Compile and render the template with safe options
+    const template = Handlebars.compile(sanitizedChildPrompt, {
+      noEscape: false,
+      strict: true,
+      preventIndent: true
+    });
     const renderedPrompt = template(templateContext);
     
     core.debug(`✅ Prompt inheritance processed successfully`);
@@ -359,6 +416,31 @@ async function processPromptInheritance(childPrompt, basePrompt) {
   // If no base-prompt variable is used, just return the child prompt
   core.debug(`🔄 No base-prompt variable found, using child prompt as-is`);
   return childPrompt;
+}
+
+/**
+ * Sanitize template input to prevent injection attacks
+ * @param {string} input - The template input to sanitize
+ * @returns {string} - The sanitized input
+ */
+function sanitizeTemplateInput(input) {
+  if (typeof input !== 'string') {
+    return '';
+  }
+  
+  // Remove or escape potentially dangerous template syntax
+  return input
+    .replace(/\{\{[^}]*\}\}/g, (match) => {
+      // Only allow the base-prompt variable
+      if (match === '{{base-prompt}}' || match === '{{{base-prompt}}}') {
+        return match;
+      }
+      // Escape other handlebars expressions
+      return match.replace(/\{/g, '\\{').replace(/\}/g, '\\}');
+    })
+    .replace(/<script[^>]*>.*?<\/script>/gi, '') // Remove script tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+\s*=/gi, ''); // Remove event handlers
 }
 
 module.exports = {

@@ -102,6 +102,11 @@ class ResourceHandler {
    * @returns {Promise<string>} - The response content
    */
   async _loadHttpResource(url, config) {
+    // Validate URL against allowlist to prevent SSRF attacks
+    if (!this._validateUrl(url)) {
+      throw new Error(`URL not allowed: ${url}`);
+    }
+    
     return new Promise((resolve, reject) => {
       const urlObj = new URL(url);
       const client = urlObj.protocol === 'https:' ? https : http;
@@ -172,8 +177,42 @@ class ResourceHandler {
       const urlObj = new URL(url);
       return urlObj.hostname === 'github.com' || 
              urlObj.hostname === 'raw.githubusercontent.com' ||
-             urlObj.hostname.includes('github');
+             urlObj.hostname === 'api.github.com';
     } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Validate URL against allowlist of trusted domains
+   * @param {string} url - The URL to validate
+   * @returns {boolean} - True if URL is allowed
+   */
+  _validateUrl(url) {
+    const ALLOWED_DOMAINS = [
+      'github.com',
+      'raw.githubusercontent.com',
+      'api.github.com'
+    ];
+    
+    try {
+      const urlObj = new URL(url);
+      
+      // Check if domain is in allowlist
+      if (!ALLOWED_DOMAINS.includes(urlObj.hostname)) {
+        core.warning(`🚫 Blocked URL outside allowlist: ${url}`);
+        return false;
+      }
+      
+      // Additional security checks
+      if (urlObj.protocol !== 'https:' && urlObj.protocol !== 'http:') {
+        core.warning(`🚫 Blocked non-HTTP(S) protocol: ${url}`);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      core.warning(`🚫 Invalid URL format: ${url}`);
       return false;
     }
   }
