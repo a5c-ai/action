@@ -259,6 +259,132 @@ your-repo/
 
 Agents are configured using YAML frontmatter in `.agent.md` files:
 
+### Agent Inheritance
+
+A5C supports agent inheritance, allowing you to create specialized agents that inherit from base agents. This enables code reuse and hierarchical agent organization.
+
+#### Basic Inheritance
+
+Use the `from` field to specify the base agent:
+
+```yaml
+---
+# Child agent configuration
+name: security-reviewer
+version: 1.0.0
+from: base-reviewer  # Inherits from base-reviewer agent
+category: security
+description: Security-focused code review agent
+priority: 80
+mentions: "@security-review,@sec-review"
+---
+
+{{base-prompt}}
+
+## Additional Security Analysis
+
+As a security-focused reviewer, I will also examine:
+- Security vulnerabilities and exploits
+- Dependency security issues
+- Authentication and authorization flaws
+```
+
+#### Multi-level Inheritance
+
+Agents can inherit from other agents that also inherit, creating inheritance chains:
+
+```yaml
+---
+# Advanced agent inheriting from security-reviewer
+name: advanced-security-reviewer
+version: 1.0.0
+from: security-reviewer  # Which inherits from base-reviewer
+category: security
+priority: 100
+mentions: "@advanced-security,@threat-analysis"
+max_turns: 20
+timeout: 30
+---
+
+{{base-prompt}}
+
+## Advanced Threat Analysis
+
+I will additionally perform:
+- AI-powered threat detection
+- Zero-day vulnerability analysis
+- Supply chain security assessment
+```
+
+#### Inheritance Features
+
+1. **Field Overriding**: Child agents can override any field from parent agents
+2. **Array Merging**: Array fields (like `mcp_servers`, `trigger_events`) are merged, not overridden
+3. **Base Prompt Variable**: Use `{{base-prompt}}` in child prompts to include the resolved parent prompt
+4. **Multi-level Support**: Inheritance works across multiple levels (A inherits from B which inherits from C)
+5. **Circular Detection**: System prevents circular inheritance loops
+6. **Remote Inheritance**: Agents can inherit from remote agents using URIs
+
+#### Supported Inheritance Sources
+
+- **Agent ID**: `from: base-reviewer` (searches in `.a5c/agents/` directories)
+- **File Path**: `from: ./agents/base-reviewer.agent.md`
+- **Remote URI**: `from: https://example.com/agents/base-reviewer.agent.md`
+- **Agent URI**: `from: agent://base-reviewer`
+
+#### Example Inheritance Chain
+
+```yaml
+# Base agent (.a5c/agents/base-reviewer.agent.md)
+---
+name: base-reviewer
+model: claude-3-5-sonnet-20241022
+max_turns: 10
+mentions: "@base-review"
+mcp_servers: ["filesystem", "github"]
+trigger_events: ["pull_request"]
+---
+
+Basic code review prompt...
+
+# Security-focused agent (.a5c/agents/security-reviewer.agent.md)
+---
+name: security-reviewer
+from: base-reviewer
+category: security
+priority: 80
+mentions: "@security-review"
+mcp_servers: ["filesystem", "github", "search"]
+trigger_events: ["pull_request", "push"]
+trigger_labels: ["security", "critical"]
+---
+
+{{base-prompt}}
+
+Additional security analysis...
+
+# Advanced security agent (.a5c/agents/advanced-security-reviewer.agent.md)
+---
+name: advanced-security-reviewer
+from: security-reviewer
+priority: 100
+mentions: "@advanced-security"
+mcp_servers: ["filesystem", "github", "search", "memory"]
+max_turns: 20
+timeout: 30
+---
+
+{{base-prompt}}
+
+Advanced threat analysis...
+```
+
+This creates a three-level inheritance chain where `advanced-security-reviewer` inherits from `security-reviewer` which inherits from `base-reviewer`.
+
+### Standard Agent Configuration
+
+For agents without inheritance, use the standard configuration format:
+
 ```yaml
 ---
 # Agent Metadata
