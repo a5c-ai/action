@@ -320,12 +320,21 @@ function validateFromField(fromValue) {
 
   // Validate allowed URL schemes
   if (fromValue.includes('://')) {
-    const allowedSchemes = ['https:', 'http:', 'file:', 'agent:'];
+    const allowedSchemes = ['https:', 'http:', 'file:', 'agent:', 'a5c:'];
     const hasAllowedScheme = allowedSchemes.some(scheme => fromValue.startsWith(scheme));
     
     if (!hasAllowedScheme) {
       result.isValid = false;
       result.errors.push(`Invalid URL scheme in 'from' field: ${fromValue}`);
+    }
+    
+    // Additional validation for a5c:// URIs
+    if (fromValue.startsWith('a5c://')) {
+      const a5cUriPattern = /^a5c:\/\/[a-zA-Z0-9-_]+\/[a-zA-Z0-9-_]+\/.+@.+$/;
+      if (!a5cUriPattern.test(fromValue)) {
+        result.isValid = false;
+        result.errors.push(`Invalid A5C URI format: ${fromValue}. Expected format: a5c://org/repo/path/to/agent@version`);
+      }
     }
   }
 

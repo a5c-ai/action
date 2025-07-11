@@ -98,12 +98,20 @@ class AgentRouter {
       const { uri, alias } = agentConfig;
       core.info(`📥 Loading individual agent from: ${uri}`);
       
-      // Load agent content using resource handler
-      const content = await loadResource(uri, {
-        cache_timeout: remoteConfig.cache_timeout || 60,
-        retry_attempts: remoteConfig.retry_attempts || 3,
-        retry_delay: remoteConfig.retry_delay || 1000
-      });
+      let content;
+      
+      // Handle A5C URIs with semantic versioning
+      if (uri.startsWith('a5c://')) {
+        const { loadA5CAgent } = require('./agent-loader');
+        content = await loadA5CAgent(uri);
+      } else {
+        // Load agent content using resource handler
+        content = await loadResource(uri, {
+          cache_timeout: remoteConfig.cache_timeout || 60,
+          retry_attempts: remoteConfig.retry_attempts || 3,
+          retry_delay: remoteConfig.retry_delay || 1000
+        });
+      }
 
       const agent = this.parseRemoteAgent(content, uri, alias);
       

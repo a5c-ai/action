@@ -6,6 +6,7 @@ const { loadPromptFromUri } = require('./prompt');
 const { loadResource } = require('./resource-handler');
 const Handlebars = require('handlebars');
 const { validateAgentConfig, logValidationErrors } = require('./agent-validator');
+const semver = require('semver');
 
 /**
  * Sanitize file path to prevent directory traversal attacks
@@ -37,6 +38,61 @@ function sanitizePath(filePath) {
   }
   
   return resolvedPath;
+}
+
+/**
+ * Load agent from A5C URI with semantic versioning support
+ * @param {string} a5cUri - A5C URI: a5c://org/repo/path/to/agent@^1.0.0
+ * @returns {Promise<string>} - Agent content
+ */
+async function loadA5CAgent(a5cUri) {
+  core.info(`📋 Loading A5C agent from: ${a5cUri}`);
+  
+  // Parse A5C URI: a5c://org/repo/path/to/agent@^1.0.0
+  const uriMatch = a5cUri.match(/^a5c:\/\/([^\/]+)\/([^\/]+)\/(.+)@(.+)$/);
+  if (!uriMatch) {
+    throw new Error(`Invalid A5C URI format: ${a5cUri}. Expected format: a5c://org/repo/path/to/agent@version`);
+  }
+  
+  const [, org, repo, agentPath, versionSpec] = uriMatch;
+  
+  // Validate version specification
+  if (!semver.validRange(versionSpec)) {
+    throw new Error(`Invalid version specification: ${versionSpec}`);
+  }
+  
+  core.debug(`🔍 Parsed A5C URI: org=${org}, repo=${repo}, path=${agentPath}, version=${versionSpec}`);
+  
+  // Get available tags from repository
+  const tagsUrl = `https://api.github.com/repos/${org}/${repo}/tags`;
+  const tagsResponse = await loadResource(tagsUrl);
+  const tags = JSON.parse(tagsResponse);
+  
+  // Find the best matching version
+  const availableVersions = tags
+    .map(tag => tag.name.startsWith('v') ? tag.name.substring(1) : tag.name)
+    .filter(version => semver.valid(version))
+    .sort(semver.rcompare);
+  
+  core.debug(`📋 Available versions: ${availableVersions.join(', ')}`);
+  
+  const matchingVersion = semver.maxSatisfying(availableVersions, versionSpec);
+  if (!matchingVersion) {
+    throw new Error(`No version found matching ${versionSpec}. Available versions: ${availableVersions.join(', ')}`);
+  }
+  
+  const tagName = availableVersions.find(v => v === matchingVersion);
+  const finalTagName = tagName.startsWith('v') ? tagName : `v${tagName}`;
+  
+  core.info(`✅ Selected version: ${matchingVersion} (tag: ${finalTagName})`);
+  
+  // Construct GitHub raw URL for the specific version
+  const rawUrl = `https://raw.githubusercontent.com/${org}/${repo}/${finalTagName}/${agentPath}`;
+  
+  core.debug(`📋 Loading agent from: ${rawUrl}`);
+  
+  // Load the agent content
+  return await loadResource(rawUrl);
 }
 
 // Load agent configuration from file path
@@ -93,6 +149,9 @@ async function loadAgentConfig(agentUri) {
     const agentId = agentUri.substring(8); // Remove 'agent://'
     const agentPath = `.a5c/agents/${agentId}.agent.md`;
     agentContent = fs.readFileSync(agentPath, 'utf8');
+  } else if (agentUri.startsWith('a5c://')) {
+    // A5C URI with semantic versioning: a5c://org/repo/path/to/agent@^1.0.0
+    agentContent = await loadA5CAgent(agentUri);
   } else {
     // Assume it's a local file path - sanitize to prevent directory traversal
     const sanitizedPath = sanitizePath(agentUri);
@@ -295,6 +354,9 @@ async function loadBaseAgent(fromSpec) {
       throw new Error(`Base agent not found: ${agentPath}`);
     }
     baseAgentContent = fs.readFileSync(agentPath, 'utf8');
+  } else if (fromSpec.startsWith('a5c://')) {
+    // A5C URI with semantic versioning: a5c://org/repo/path/to/agent@^1.0.0
+    baseAgentContent = await loadA5CAgent(fromSpec);
   } else if (fromSpec.includes('/') || fromSpec.includes('\\')) {
     // File path - sanitize to prevent directory traversal
     const sanitizedPath = sanitizePath(fromSpec);
@@ -446,5 +508,6 @@ function sanitizeTemplateInput(input) {
 module.exports = {
   loadAgentConfigFromFile,
   loadAgentConfig,
-  generateAgentDiscoveryContext
+  generateAgentDiscoveryContext,
+  loadA5CAgent
 }; 

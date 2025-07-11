@@ -23,7 +23,8 @@
     "front-matter": "^4.0.2",
     "handlebars": "^4.7.8",
     "js-yaml": "^4.1.0",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "semver": "^7.5.4"
   },
   "engines": {
     "node": ">=20"
