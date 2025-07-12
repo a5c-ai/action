@@ -199,6 +199,17 @@ class AgentRouter {
       const agent = this.parseRemoteAgent(content, uri, alias);
       
       if (agent) {
+        // Handle prompt content loading (similar to loadAgentConfigFromFile)
+        if (agent.prompt_uri) {
+          // Load prompt from URI using resource handler
+          core.info(`📝 Loading prompt from URI: ${agent.prompt_uri}`);
+          const { loadPromptFromUri } = require('./prompt');
+          agent.prompt_content = await loadPromptFromUri(agent.prompt_uri, agent);
+        } else {
+          // Use the body content as prompt
+          agent.prompt_content = agent.content ? agent.content.trim() : '';
+        }
+        
         this.agents.set(agent.id, agent);
         core.info(`✅ Loaded remote agent: ${agent.name} (${agent.id})`);
       }
@@ -247,6 +258,17 @@ class AgentRouter {
       const agent = this.parseRemoteAgent(content, agentFile.download_url, agentFile.name);
       
       if (agent) {
+        // Handle prompt content loading (similar to loadAgentConfigFromFile)
+        if (agent.prompt_uri) {
+          // Load prompt from URI using resource handler
+          core.info(`📝 Loading prompt from URI: ${agent.prompt_uri}`);
+          const { loadPromptFromUri } = require('./prompt');
+          agent.prompt_content = await loadPromptFromUri(agent.prompt_uri, agent);
+        } else {
+          // Use the body content as prompt
+          agent.prompt_content = agent.content ? agent.content.trim() : '';
+        }
+        
         this.agents.set(agent.id, agent);
         core.info(`✅ Loaded repository agent: ${agent.name} (${agent.id})`);
       }
@@ -441,6 +463,7 @@ class AgentRouter {
         mcp_servers: this.parseListField(parsed.attributes.mcp_servers),
         cli_command: parsed.attributes.cli_command || null,
         agent_discovery: parsed.attributes.agent_discovery || null,
+        prompt_uri: parsed.attributes.prompt_uri || null,
         source: 'remote',
         remote_uri: uri,
         content: parsed.body
@@ -618,6 +641,7 @@ class AgentRouter {
         mcp_servers: this.parseListField(parsed.attributes.mcp_servers),
         cli_command: parsed.attributes.cli_command || null,
         agent_discovery: parsed.attributes.agent_discovery || null,
+        prompt_uri: parsed.attributes.prompt_uri || null,
         source: 'local',
         content: parsed.body
       };
