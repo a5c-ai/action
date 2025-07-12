@@ -36,6 +36,20 @@ async function executeMainAgent(agent, config, router = null, dryRun = false) {
             core.info('🏃 DRY RUN: Prepared prompt and context, but not executing agent');
             core.info(`📝 Final prompt length: ${promptData.prompt.length} characters`);
             core.info(`📝 Final prompt preview:\n${promptData.prompt.substring(0, 500)}...`);
+            
+            // Save the full prompt to a file for examination
+            const fs = require('fs');
+            const path = require('path');
+            try {
+                const promptFileName = `generated-final-prompt-${agent.name || 'unknown'}-${Date.now()}.md`;
+                const promptFile = path.join(process.cwd(), promptFileName);
+                fs.writeFileSync(promptFile, promptData.prompt, 'utf8');
+                core.info(`📄 Full prompt saved to: ${promptFile}`);
+                core.info(`📏 Saved prompt length: ${promptData.prompt.length} characters`);
+            } catch (error) {
+                core.warning(`Failed to save prompt to file: ${error.message}`);
+            }
+            
             return;
         }
         

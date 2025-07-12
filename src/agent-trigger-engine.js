@@ -463,7 +463,7 @@ class AgentRouter {
         mcp_servers: this.parseListField(parsed.attributes.mcp_servers),
         cli_command: parsed.attributes.cli_command || null,
         agent_discovery: parsed.attributes.agent_discovery || null,
-        prompt_uri: parsed.attributes.prompt_uri || null,
+        prompt_uri: parsed.attributes.prompt_uri || parsed.attributes['prompt-uri'] || null,
         source: 'remote',
         remote_uri: uri,
         content: parsed.body
@@ -609,6 +609,17 @@ class AgentRouter {
       const agent = this.parseAgent(content, agentPath);
       
       if (agent) {
+        // Handle prompt content loading (similar to remote agents)
+        if (agent.prompt_uri) {
+          // Load prompt from URI using resource handler
+          core.info(`📝 Loading prompt from URI: ${agent.prompt_uri}`);
+          const { loadPromptFromUri } = require('./prompt');
+          agent.prompt_content = await loadPromptFromUri(agent.prompt_uri, agent);
+        } else {
+          // Use the body content as prompt
+          agent.prompt_content = agent.content ? agent.content.trim() : '';
+        }
+        
         this.agents.set(agent.id, agent);
         const relativePath = path.relative(path.join(process.cwd(), '.a5c', 'agents'), agentPath);
         core.info(`✅ Loaded agent: ${agent.name} (${relativePath})`);
@@ -641,7 +652,7 @@ class AgentRouter {
         mcp_servers: this.parseListField(parsed.attributes.mcp_servers),
         cli_command: parsed.attributes.cli_command || null,
         agent_discovery: parsed.attributes.agent_discovery || null,
-        prompt_uri: parsed.attributes.prompt_uri || null,
+        prompt_uri: parsed.attributes.prompt_uri || parsed.attributes['prompt-uri'] || null,
         source: 'local',
         content: parsed.body
       };
