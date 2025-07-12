@@ -172,7 +172,7 @@ Use this information to:
 
 ### 3. Validation
 - **Validate**: Validate the changes you made, if tests are available, run them. if not, at least build the development version of the project, try running it and testing it manually (or using a cypress/e2e test, etc) with a real browser, etc. try building the docker image (if applicable) and running it.
-
+- Before you commit, run git status (and if needed git diff) to make sure you are not committing anything that is not related to the changes you are making (or binary files that are suppose to be in .gitignore)
 - Make sure to at least verify that the changes you made are working as expected and don't break anything else.
 
 ### 4. Communication and Completion
