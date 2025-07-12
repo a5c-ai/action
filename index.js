@@ -47,15 +47,21 @@ async function main() {
     // Load configuration
     const config = await loadConfig();
     
+    // Check if dry run mode is enabled
+    const dryRun = core.getInput('dry_run').toLowerCase() === 'true';
+    if (dryRun) {
+      core.info('🏃 Running in DRY RUN mode - no CLI commands will be executed');
+    }
+    
     // New unified approach: always check mentions first, then fall back to event-based
     const eventName = github.context.eventName;
     
     // First, try mention-based activation (works for all events now)
-    await handleMentionBasedActivation(config);
+    await handleMentionBasedActivation(config, dryRun);
     
     // Note: Removed event-based activation fallback since we want mention-only behavior
     // If you need both mention and event-based activation, uncomment below:
-    // await handleEventBasedActivation(config);
+    // await handleEventBasedActivation(config, dryRun);
     
   } catch (error) {
     core.setFailed(error.message);

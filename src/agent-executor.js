@@ -5,7 +5,7 @@ const { processAgentOutput, setOutputs } = require('./output-processor');
 const AgentRouter = require('./agent-trigger-engine');
 
 // Main execution logic for a single agent
-async function executeMainAgent(agent, config, router = null) {
+async function executeMainAgent(agent, config, router = null, dryRun = false) {
     try {
         let agentRouter = router;
         
@@ -32,8 +32,15 @@ async function executeMainAgent(agent, config, router = null) {
         // Prepare prompt with proper context (note: parameter order is config, availableAgents, mentions, globalConfig)
         const promptData = await preparePrompt(agent, availableAgents, mentions, config);
         
+        if (dryRun) {
+            core.info('🏃 DRY RUN: Prepared prompt and context, but not executing agent');
+            core.info(`📝 Final prompt length: ${promptData.prompt.length} characters`);
+            core.info(`📝 Final prompt preview:\n${promptData.prompt.substring(0, 500)}...`);
+            return;
+        }
+        
         // Execute the agent
-        const response = await executeAgent(agent, promptData, config);
+        const response = await executeAgent(agent, promptData, config, dryRun);
         
         // Process output and create structured report
         const processedOutput = await processAgentOutput(response, agent);

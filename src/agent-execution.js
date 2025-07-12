@@ -9,7 +9,7 @@ const { createMCPConfigFile, cleanupMCPConfig } = require('./mcp-manager');
 const artifact = require('@actions/artifact');
 
 // Execute agent using CLI command
-async function executeAgent(agent, promptData, config) {
+async function executeAgent(agent, promptData, config, dryRun = false) {
   const startTime = Date.now();
   let statusFd = null;
   let logFd = null;
@@ -29,15 +29,17 @@ async function executeAgent(agent, promptData, config) {
     
     core.info(`🔍 CLI command: ${cliCommand}`);
 
-    // Setup file descriptors for agent reporter communication
-    core.info(`🔍 Setting up agent reporter communication file descriptors`);
-    const { statusFd: sFd, logFd: lFd, statusListener: sListener, logListener: lListener } = 
-      await setupAgentReporterCommunication(agent.id);
-    
-    statusFd = sFd;
-    logFd = lFd;
-    statusListener = sListener;
-    logListener = lListener;
+    // Setup file descriptors for agent reporter communication (only if not dry run)
+    if (!dryRun) {
+      core.info(`🔍 Setting up agent reporter communication file descriptors`);
+      const { statusFd: sFd, logFd: lFd, statusListener: sListener, logListener: lListener } = 
+        await setupAgentReporterCommunication(agent.id);
+      
+      statusFd = sFd;
+      logFd = lFd;
+      statusListener = sListener;
+      logListener = lListener;
+    }
     
     // Prepare template context for CLI command
     const templateContext = {
@@ -53,6 +55,7 @@ async function executeAgent(agent, promptData, config) {
       globalConfig: config
     };
     core.debug(`🔍 Template context: ${JSON.stringify(templateContext)}`);
+    
     // Set up MCP configuration (always create to include default servers)
     {
       // Add file descriptor environment variables to MCP config
@@ -67,16 +70,43 @@ async function executeAgent(agent, promptData, config) {
       templateContext.mcp_config = await createMCPConfigFile(agent.mcp_servers, mcpConfig);
     }    
     core.debug(`🔍 MCP config: ${JSON.stringify(templateContext.mcp_config)}`);
+    
     // Create temporary prompt file if needed
     if (cliCommand.includes('{{prompt_path}}')) {
       templateContext.prompt_path = await createTempPromptFile(promptData.prompt);
     }
     core.debug(`🔍 Prompt path: ${templateContext.prompt_path}`);
+    
     // Compile and render the CLI command template
     const commandTemplate = Handlebars.compile(cliCommand);
     const renderedCommand = commandTemplate(templateContext);
     core.debug(`🔍 Rendered command: ${renderedCommand}`);
-    core.info(`🚀 Executing: ${renderedCommand}`);
+    core.info(`🚀 ${dryRun ? 'DRY RUN - Would execute' : 'Executing'}: ${renderedCommand}`);
+    
+    // In dry run mode, return mock data instead of executing
+    if (dryRun) {
+      const executionTime = Date.now() - startTime;
+      core.info(`🏃 DRY RUN: Prepared everything for execution:`);
+      core.info(`   Agent ID: ${agent.id}`);
+      core.info(`   Agent Name: ${agent.name}`);
+      core.info(`   Model: ${templateContext.model}`);
+      core.info(`   Max Turns: ${templateContext.max_turns}`);
+      core.info(`   Verbose: ${templateContext.verbose}`);
+      core.info(`   Files: ${templateContext.files.length} files`);
+      core.info(`   MCP Config: ${templateContext.mcp_config ? 'Created' : 'Not configured'}`);
+      core.info(`   Prompt Path: ${templateContext.prompt_path ? 'Created' : 'Not created'}`);
+      core.info(`   Preparation Time: ${executionTime}ms`);
+      
+      return {
+        stdout: '[DRY RUN] Command would be executed here',
+        stderr: '',
+        exitCode: 0,
+        statusReports: [],
+        logEntries: [],
+        dryRun: true,
+        executionTime: executionTime
+      };
+    }
     
     // Execute the CLI command
     const result = await executeCommand(renderedCommand, {

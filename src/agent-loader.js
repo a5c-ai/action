@@ -641,5 +641,6 @@ module.exports = {
   loadAgentConfigFromFile,
   loadAgentConfig,
   generateAgentDiscoveryContext,
-  loadA5CAgent
+  loadA5CAgent,
+  resolveAgentInheritance
 }; 

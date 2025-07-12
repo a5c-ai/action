@@ -6,7 +6,7 @@ const { loadAgentConfigFromFile } = require('./agent-loader');
 const { mergeConfigurations } = require('./config');
 
 // Handle mention-based activation from any event
-async function handleMentionBasedActivation(config) {
+async function handleMentionBasedActivation(config, dryRun = false) {
   try {
     const { context } = github;
     const mentionableContent = await getMentionableContent(context);
@@ -31,7 +31,7 @@ async function handleMentionBasedActivation(config) {
     }
     
     // Execute agents in mention order
-    await executeAgentSequence(mentionedAgents, config, router);
+    await executeAgentSequence(mentionedAgents, config, router, dryRun);
     
   } catch (error) {
     core.setFailed(`Mention-based activation failed: ${error.message}`);
@@ -39,7 +39,7 @@ async function handleMentionBasedActivation(config) {
 }
 
 // Handle event-based activation
-async function handleEventBasedActivation(config) {
+async function handleEventBasedActivation(config, dryRun = false) {
   try {
     const { context } = github;
     
@@ -58,7 +58,7 @@ async function handleEventBasedActivation(config) {
     }
     
     // Execute agents in priority order
-    await executeAgentSequence(triggeredAgents, config, router);
+    await executeAgentSequence(triggeredAgents, config, router, dryRun);
     
   } catch (error) {
     core.setFailed(`Event-based activation failed: ${error.message}`);
@@ -66,7 +66,7 @@ async function handleEventBasedActivation(config) {
 }
 
 // Execute a sequence of agents
-async function executeAgentSequence(agents, globalConfig, router) {
+async function executeAgentSequence(agents, globalConfig, router, dryRun = false) {
   const results = [];
   let allSuccessful = true;
   
@@ -89,13 +89,18 @@ async function executeAgentSequence(agents, globalConfig, router) {
       let agentConfig = agentInfo;
       if (agentInfo.source === 'local' && agentInfo.path) {
         agentConfig = await loadAgentConfigFromFile(agentInfo.path);
+      } else if (agentInfo.source === 'remote' && agentInfo.from) {
+        // Handle inheritance for remote agents
+        core.debug(`🔄 Processing inheritance for remote agent: ${agentInfo.name}`);
+        const { resolveAgentInheritance } = require('./agent-loader');
+        agentConfig = await resolveAgentInheritance(agentInfo, agentInfo.remote_uri);
       }
       
       // Merge with global configuration
       const mergedConfig = mergeConfigurations(globalConfig, agentConfig);
       
       // Execute the agent with the router that has all agents loaded (including remote)
-      await executeMainAgent(mergedConfig, globalConfig, router);
+      await executeMainAgent(mergedConfig, globalConfig, router, dryRun);
       
       results.push({
         agent_id: agentInfo.id,
