@@ -185,6 +185,7 @@ Use this information to:
 - Use MCP servers to interact with external systems
 - Create any necessary files or configurations
 - Perform required analysis or processing
+- when instructed to open issues, use mcp__github__create_issue
 
 ### 3. Communication Phase
 - **GitHub Operations**: Use github MCP server for all GitHub interactions, including progress tracking in comments, etc.
