@@ -55,6 +55,11 @@ class ResourceHandler {
         return content;
       } catch (error) {
         lastError = error;
+        // handle 404 errors
+        if(error.message.includes('HTTP 404')) {
+          core.warning(`Resource not found: ${uri}`);
+          return null;
+        }
         if (attempt < config.retry_attempts) {
           core.warning(`Attempt ${attempt} failed for ${uri}, retrying in ${config.retry_delay}ms: ${error.message}`);
           await this._delay(config.retry_delay);
@@ -154,7 +159,7 @@ class ResourceHandler {
         });
       });
       
-      req.on('error', (error) => {
+      req.on('error', (error) => {        
         reject(new Error(`Request failed: ${error.message}`));
       });
       
