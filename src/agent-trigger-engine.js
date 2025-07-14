@@ -677,6 +677,10 @@ class AgentRouter {
   parseListField(field) {
     if (!field) return [];
     if (Array.isArray(field)) return field;
+    // might be "["", "", ""]"
+    if (field.startsWith('[') && field.endsWith(']')) {
+      return field.slice(1, -1).split(',').map(item => item.trim().replace(/^['"]|['"]$/g, ''));
+    }
     return field.split(',').map(item => item.trim().replace(/^['"]|['"]$/g, ''));
   }
 
