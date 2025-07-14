@@ -875,7 +875,20 @@ class AgentRouter {
     core.info(`🔍 Checking for agent mentions in content for event: ${currentEvent}`);
     
     for (const [agentId, agent] of this.agents) {
-      // For workflow_run events, bypass the event filtering
+      // For workflow_run events, bypass the mention checking and include the agents that support workflow_run (first mention tag)
+      if (currentEvent === 'workflow_run' && agent.events.includes('workflow_run')) {
+        mentionedAgents.push({
+          ...agent,
+          triggeredBy: 'workflow_run',
+          triggerType: 'mention',
+          mentionOrder: 0,
+          mentions: [ agent.mentions[0] || 'workflow_run' ]
+        });
+        continue;
+      }
+
+
+
       // For other events, check if agent can respond to this event (events field acts as filter)
       if (currentEvent !== 'workflow_run' && agent.events.length > 0 && !agent.events.includes(currentEvent)) {
         continue; // Skip this agent if it doesn't support this event
