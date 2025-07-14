@@ -875,8 +875,16 @@ class AgentRouter {
     core.info(`🔍 Checking for agent mentions in content for event: ${currentEvent}`);
     
     for (const [agentId, agent] of this.agents) {
+
+      // For other events, check if agent can respond to this event (events field acts as filter)
+      if (agent.events.length > 0 && !agent.events.includes(currentEvent)) {
+        core.debug(`🔍 Skipping agent: ${agent.name} (${agent.id}) because it doesn't support this event: ${currentEvent}. only supports: ${agent.events}`);
+        continue; // Skip this agent if it doesn't support this event
+      }
+
       // For workflow_run events, bypass the mention checking and include the agents that support workflow_run (first mention tag)
-      if (currentEvent === 'workflow_run' && agent.events.includes('workflow_run')) {
+      if (currentEvent === 'workflow_run') {
+        core.debug(`🔍 Checking for workflow_run event for agent: ${agent.name} (${agent.id}) with agent events: ${agent.events}`);
         mentionedAgents.push({
           ...agent,
           triggeredBy: 'workflow_run',
@@ -887,12 +895,6 @@ class AgentRouter {
         continue;
       }
 
-
-
-      // For other events, check if agent can respond to this event (events field acts as filter)
-      if (currentEvent !== 'workflow_run' && agent.events.length > 0 && !agent.events.includes(currentEvent)) {
-        continue; // Skip this agent if it doesn't support this event
-      }
       
       const matchedMentions = [];
       let earliestMentionOrder = Number.MAX_SAFE_INTEGER;

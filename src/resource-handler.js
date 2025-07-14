@@ -51,7 +51,7 @@ class ResourceHandler {
         resourceCache.set(cacheKey, content);
         resourceCacheExpiry.set(cacheKey, now + cacheTimeout);
         
-        core.info(`📥 Loaded and cached resource: ${uri}`);
+        core.debug(`📥 Loaded and cached resource: ${uri}`);
         return content;
       } catch (error) {
         lastError = error;
@@ -126,7 +126,7 @@ class ResourceHandler {
         const githubToken = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
         if (githubToken) {
           headers['Authorization'] = `token ${githubToken}`;
-          core.info(`🔐 Using GitHub authentication for: ${url}`);
+          core.debug(`🔐 Using GitHub authentication for: ${url}`);
         }
       }
       
