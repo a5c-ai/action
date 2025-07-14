@@ -875,8 +875,9 @@ class AgentRouter {
     core.info(`🔍 Checking for agent mentions in content for event: ${currentEvent}`);
     
     for (const [agentId, agent] of this.agents) {
-      // First check if agent can respond to this event (events field acts as filter)
-      if (agent.events.length > 0 && !agent.events.includes(currentEvent)) {
+      // For workflow_run events, bypass the event filtering
+      // For other events, check if agent can respond to this event (events field acts as filter)
+      if (currentEvent !== 'workflow_run' && agent.events.length > 0 && !agent.events.includes(currentEvent)) {
         continue; // Skip this agent if it doesn't support this event
       }
       
