@@ -99,7 +99,9 @@ class AgentRouter {
     await this.loadLocalAgents();
     await this.loadRemoteAgents();
     core.info(`📋 Loaded ${this.agents.size} total agent(s)`);
-    core.debug(`Agents Data: ${JSON.stringify(this.agents, null, 2)}`);
+    for (const agent of this.agents.values()) {
+      core.debug(`Agent Data: ${JSON.stringify(agent, null, 2)}`);
+    }
   }
 
   // Load agents from local .a5c/agents directory
