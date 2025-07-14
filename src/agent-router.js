@@ -231,6 +231,36 @@ async function getMentionableContent(context) {
     }
   }
   
+  // Workflow run events
+  if (eventName === 'workflow_run') {
+    // For workflow_run events, include workflow and repository information as mentionable content
+    // This allows bypassing the empty mentionable content check for workflow_run events
+    const workflowInfo = [];
+    
+    if (payload.workflow_run) {
+      if (payload.workflow_run.name) {
+        workflowInfo.push(`Workflow: ${payload.workflow_run.name}`);
+      }
+      if (payload.workflow_run.event) {
+        workflowInfo.push(`Event: ${payload.workflow_run.event}`);
+      }
+      if (payload.workflow_run.conclusion) {
+        workflowInfo.push(`Conclusion: ${payload.workflow_run.conclusion}`);
+      }
+    }
+    
+    if (payload.repository && payload.repository.full_name) {
+      workflowInfo.push(`Repository: ${payload.repository.full_name}`);
+    }
+    
+    // Even if we don't have specific content, add workflow_run as a special marker
+    // This ensures we have at least some content for workflow_run events
+    workflowInfo.push('Event Type: workflow_run');
+    
+    content.push(workflowInfo.join(' '));
+    core.info(`📝 Added workflow_run information to mentionable content`);
+  }
+  
   return content.join(' ');
 }
 
