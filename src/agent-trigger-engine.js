@@ -106,14 +106,14 @@ class AgentRouter {
     const agentsDir = path.join('.a5c', 'agents');
     
     if (!fs.existsSync(agentsDir)) {
-      core.warning(`Agents directory not found: ${agentsDir}`);
+      core.debug(`Agents directory not found: ${agentsDir}`);
       return;
     }
 
     const agentFiles = this.findAgentFiles(agentsDir);
     
     if (agentFiles.length === 0) {
-      core.warning(`No agent files found in ${agentsDir}`);
+      core.debug(`No agent files found in ${agentsDir}`);
       return;
     }
 
@@ -129,7 +129,7 @@ class AgentRouter {
     const remoteConfig = this.config.remote_agents;
     
     if (!remoteConfig || !remoteConfig.enabled) {
-      core.debug('Remote agents not enabled, skipping');
+      core.debug('Remote agents not enabled, skipping loading remote agents');
       return;
     }
 
