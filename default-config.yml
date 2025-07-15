@@ -35,7 +35,7 @@ remote_agents:
       - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/build-fixer-agent.agent.md"
         alias: "build-fixer-agent"
       # researcher agents
-      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/researcher/researcher-base-agent.agent.md"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/research/researcher-base-agent.agent.md"
         alias: "researcher-base-agent"
 
       # communication agents
