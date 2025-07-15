@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const https = require('https');
 const http = require('http');
 const core = require('@actions/core');
@@ -265,6 +266,38 @@ class ResourceHandler {
   }
 }
 
+/**
+ * Resolve a URI relative to a base URI or path
+ * @param {string} uri - The URI to resolve
+ * @param {string} base - The base URI or path to resolve against
+ * @returns {string} - The resolved URI
+ */
+function resolveUri(uri, base) {
+  // If URI is already absolute, return it as is
+  if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('file://') || path.isAbsolute(uri)) {
+    return uri;
+  }
+  
+  // Handle different base URI formats
+  if (base.startsWith('http://') || base.startsWith('https://')) {
+    // For HTTP(S) URLs, use URL resolution
+    try {
+      return new URL(uri, base).toString();
+    } catch (error) {
+      core.warning(`Failed to resolve URL ${uri} against base ${base}: ${error.message}`);
+      return uri;
+    }
+  } else if (base.startsWith('file://')) {
+    // For file:// URLs, resolve path and reattach the protocol
+    const basePath = base.substring(7);
+    const resolvedPath = path.resolve(path.dirname(basePath), uri);
+    return `file://${resolvedPath}`;
+  } else {
+    // For local file paths
+    return path.resolve(path.dirname(base), uri);
+  }
+}
+
 // Create default instance
 const defaultResourceHandler = new ResourceHandler();
 
@@ -273,5 +306,6 @@ module.exports = {
   ResourceHandler,
   loadResource: (uri, options) => defaultResourceHandler.loadResource(uri, options),
   clearCache: () => defaultResourceHandler.clearCache(),
-  getCacheStats: () => defaultResourceHandler.getCacheStats()
+  getCacheStats: () => defaultResourceHandler.getCacheStats(),
+  resolveUri
 }; 
