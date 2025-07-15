@@ -59,9 +59,7 @@ async function main() {
     // First, try mention-based activation (works for all events now)
     await handleMentionBasedActivation(config, dryRun);
     
-    // Note: Removed event-based activation fallback since we want mention-only behavior
-    // If you need both mention and event-based activation, uncomment below:
-    // await handleEventBasedActivation(config, dryRun);
+    await handleEventBasedActivation(config, dryRun);
     
   } catch (error) {
     core.setFailed(error.message);
