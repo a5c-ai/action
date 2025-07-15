@@ -729,12 +729,15 @@ class AgentRouter {
     const triggers = [];
     
     // 1. Event-based triggers
-    if (agent.events.includes(context.eventName)) {
-      triggers.push({
-        type: 'event',
-        reason: `Event: ${context.eventName}`,
-        data: { eventName: context.eventName }
-      });
+    if (agent.events.length > 0 && !agent.events.includes(context.eventName)) {
+      core.debug(`🔍 Skipping agent: ${agent.name} (${agent.id}) because it doesn't support this event: ${context.eventName}. only supports: ${agent.events}`);
+      return triggers;
+    }
+    
+    // if this is a mention based agent, we need to check skip this entire check
+    if (agent.mentions.length > 0) {
+      core.debug(`🔍 Skipping agent: ${agent.name} (${agent.id}) because it's a mention based agent. mentions: ${agent.mentions}`);
+      return triggers;
     }
     
     // 2. Label-based triggers
