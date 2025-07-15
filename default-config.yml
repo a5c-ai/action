@@ -20,12 +20,53 @@ mcp_config_path: ".a5c/mcps.json"
 # Remote Agents Configuration
 remote_agents:
   enabled: true
-  cache_timeout: 120       # Cache timeout in minutes (2 hours)
-  retry_attempts: 5        # Number of retry attempts
-  retry_delay: 2000        # Delay between retries in milliseconds
+  cache_timeout: 120  # 2 hours
+  retry_attempts: 5
+  retry_delay: 2000   # 2 seconds
   sources:
-    individual: []         # List of individual agent URIs
+    individual:
+      # development agents
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/developer-agent.agent.md"
+        alias: "developer-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/validator-agent.agent.md"
+        alias: "validator-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/project-seeder-agent.agent.md"
+        alias: "project-seeder-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/build-fixer-agent.agent.md"
+        alias: "build-fixer-agent"
+      # researcher agents
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/researcher/researcher-base-agent.agent.md"
+        alias: "researcher-base-agent"
+
+      # communication agents
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/communication/discord-manager-agent.agent.md"
+        alias: "discord-manager-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/communication/slack-manager-agent.agent.md"
+        alias: "slack-manager-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/communication/content-writer-agent.agent.md"
+        alias: "content-writer-agent"
+
+      # news agents
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/news/news-aggregator-agent.agent.md"
+        alias: "news-aggregator-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/news/project-news-analyzer-agent.agent.md"
+        alias: "project-news-analyzer-agent"
+      # media agents
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/media/video-generation-agent.agent.md"
+        alias: "video-generation-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/media/video-editing-agent.agent.md"
+        alias: "video-editing-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/media/image-generation-agent.agent.md"
+        alias: "image-generation-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/media/image-editing-agent.agent.md"
+        alias: "image-editing-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/media/music-generation-agent.agent.md"
+        alias: "music-generation-agent"
+      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/media/speech-generation-agent.agent.md"
+        alias: "speech-generation-agent"
     repositories: []       # List of repository configurations
+
+
 
 # File processing configuration
 file_processing:
