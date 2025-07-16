@@ -2,8 +2,7 @@ const Handlebars = require('handlebars');
 const core = require('@actions/core');
 const { loadResource, resolveUri } = require('./resource-handler');
 
-// Prevent circular template inclusions
-const inclusionStack = new Set();
+// Maximum inclusion depth to prevent excessive recursion
 const MAX_INCLUSION_DEPTH = 10;
 
 /**
@@ -34,6 +33,9 @@ function initializeTemplateHelpers(handlebarsInstance = Handlebars) {
     const baseUri = context._baseUri || '';
     const includeDepth = (context._includeDepth || 0) + 1;
     
+    // Create or use existing inclusion stack for tracking circular references
+    const inclusionStack = context._inclusionStack || new Set();
+    
     // Resolve URI (handle relative paths)
     const resolvedUri = resolveUri(templateUri, baseUri);
     
@@ -55,7 +57,7 @@ function initializeTemplateHelpers(handlebarsInstance = Handlebars) {
       // Load the template content
       core.debug(`Including template from ${resolvedUri}`);
       const templateContent = await loadResource(resolvedUri, {
-        cache_timeout: 60, // 1 hour cache
+        cache_timeout: 60, // 60 minutes cache
         retry_attempts: 3
       });
       
@@ -72,7 +74,8 @@ function initializeTemplateHelpers(handlebarsInstance = Handlebars) {
         ...context,
         _includeSource: resolvedUri,
         _includeDepth: includeDepth,
-        _baseUri: resolvedUri
+        _baseUri: resolvedUri,
+        _inclusionStack: inclusionStack
       };
       
       // Render the template with the combined context
@@ -80,7 +83,7 @@ function initializeTemplateHelpers(handlebarsInstance = Handlebars) {
       return new handlebarsInstance.SafeString(result);
     } catch (error) {
       core.warning(`Error including template from ${resolvedUri}: ${error.message}`);
-      return `[Error including template: ${error.message}]`;
+      return `[Error: Template inclusion failed]`;
     } finally {
       // Remove from inclusion stack when done
       inclusionStack.delete(resolvedUri);
@@ -108,7 +111,7 @@ function initializeTemplateHelpers(handlebarsInstance = Handlebars) {
       // Load the template content
       core.debug(`Raw including template from ${resolvedUri}`);
       const templateContent = await loadResource(resolvedUri, {
-        cache_timeout: 60, // 1 hour cache
+        cache_timeout: 60, // 60 minutes cache
         retry_attempts: 3
       });
       
@@ -121,7 +124,7 @@ function initializeTemplateHelpers(handlebarsInstance = Handlebars) {
       return new handlebarsInstance.SafeString(templateContent);
     } catch (error) {
       core.warning(`Error raw including template from ${resolvedUri}: ${error.message}`);
-      return `[Error including template: ${error.message}]`;
+      return `[Error: Template inclusion failed]`;
     }
   });
   

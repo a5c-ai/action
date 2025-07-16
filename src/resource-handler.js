@@ -97,7 +97,7 @@ class ResourceHandler {
     try {
       return fs.readFileSync(filePath, 'utf8');
     } catch (error) {
-      throw new Error(`Failed to read file ${filePath}: ${error.message}`);
+      throw new Error(`Failed to read file: Access denied or file not found`);
     }
   }
 
@@ -201,6 +201,14 @@ class ResourceHandler {
       'api.github.com'
     ];
     
+    // Blocked paths that could expose sensitive information
+    const BLOCKED_PATHS = [
+      '/admin',
+      '/api/v3/user',
+      '/api/v4/user',
+      '/settings'
+    ];
+    
     try {
       const urlObj = new URL(url);
       
@@ -208,6 +216,14 @@ class ResourceHandler {
       if (!ALLOWED_DOMAINS.includes(urlObj.hostname)) {
         core.warning(`🚫 Blocked URL outside allowlist: ${url}`);
         return false;
+      }
+      
+      // Check for blocked paths
+      for (const blockedPath of BLOCKED_PATHS) {
+        if (urlObj.pathname.startsWith(blockedPath)) {
+          core.warning(`🚫 Blocked access to restricted path: ${url}`);
+          return false;
+        }
       }
       
       // Additional security checks
@@ -267,6 +283,25 @@ class ResourceHandler {
 }
 
 /**
+ * Validate paths to prevent path traversal attacks
+ * @param {string} resolvedPath - The path to validate
+ * @returns {string} - The validated path
+ */
+function validatePath(resolvedPath) {
+  const normalizedPath = path.normalize(resolvedPath);
+  
+  // Check for path traversal attempts
+  if (normalizedPath.includes('..') || 
+      normalizedPath.startsWith('/etc/') || 
+      normalizedPath.startsWith('/proc/') || 
+      normalizedPath.startsWith('/sys/')) {
+    throw new Error(`Path traversal attempt detected`);
+  }
+  
+  return normalizedPath;
+}
+
+/**
  * Resolve a URI relative to a base URI or path
  * @param {string} uri - The URI to resolve
  * @param {string} base - The base URI or path to resolve against
@@ -291,10 +326,12 @@ function resolveUri(uri, base) {
     // For file:// URLs, resolve path and reattach the protocol
     const basePath = base.substring(7);
     const resolvedPath = path.resolve(path.dirname(basePath), uri);
-    return `file://${resolvedPath}`;
+    const validatedPath = validatePath(resolvedPath);
+    return `file://${validatedPath}`;
   } else {
     // For local file paths
-    return path.resolve(path.dirname(base), uri);
+    const resolvedPath = path.resolve(path.dirname(base), uri);
+    return validatePath(resolvedPath);
   }
 }
 
