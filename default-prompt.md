@@ -170,7 +170,7 @@ Use this information to:
 - Create any necessary files or configurations
 - Perform required analysis or processing
 - when instructed to open issues, pull requests, etc. , use the gh command line tool.
-- DO NOT write directly to .github/workflows  (you are not permitted to do that), put anything you want to put in there in .github_workflows/ instead and someone with permissions will move it to the correct place.
+- DO NOT write directly to .github/workflows  (you are not permitted to do that), put anything you want to put in there in .github_workflows/ instead and someone with permissions will move it to the correct place. ideally, work around the need for that by changing other files that the workflow executes.
 
 ### 3. Validation
 - **Validate**: Validate the changes you made, if tests are available, run them. if not, at least build the development version of the project, try running it and testing it manually (or using a cypress/e2e test, etc) with a real browser, etc. try building the docker image (if applicable) and running it.
