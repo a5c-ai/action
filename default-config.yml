@@ -12,6 +12,10 @@ defaults:
   max_turns: 10
   timeout: 30
   verbose: true
+  
+  # Default user whitelist (if not specified at agent level)
+  # If not set, falls back to team members of the org/project
+  user_whitelist: []
 
 # MCP Server Configuration
 # Path to user-defined MCP servers (optional - built-in servers are always available)
