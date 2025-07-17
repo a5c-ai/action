@@ -1,0 +1,40 @@
+{
+  "name": "@a5c/cli",
+  "version": "1.0.0",
+  "description": "CLI tool for A5C - AI Agent System",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "a5c": "bin/a5c.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "clean": "rimraf dist",
+    "lint": "eslint src/**/*.js"
+  },
+  "keywords": [
+    "cli",
+    "a5c",
+    "ai",
+    "agents"
+  ],
+  "author": "a5c.ai",
+  "license": "MIT",
+  "dependencies": {
+    "@a5c/sdk": "^1.0.0",
+    "commander": "^11.1.0",
+    "inquirer": "^9.2.12",
+    "chalk": "^5.3.0",
+    "ora": "^7.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.2",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.5",
+    "eslint": "^8.55.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
