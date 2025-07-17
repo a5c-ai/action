@@ -1,0 +1,75 @@
+const core = require('@actions/core');
+const { preparePrompt } = require('./prompt');
+const { executeAgent } = require('./agent-execution');
+const { processAgentOutput, setOutputs } = require('./output-processor');
+const AgentRouter = require('./agent-trigger-engine');
+
+// Main execution logic for a single agent
+async function executeMainAgent(agent, config, router = null, dryRun = false) {
+    try {
+        let agentRouter = router;
+        
+        // If no router provided, create and load one (fallback for backward compatibility)
+        if (!agentRouter) {
+            core.info('🔄 No router provided, creating new AgentRouter for agent discovery');
+            agentRouter = new AgentRouter(config);
+            await agentRouter.loadAgents();
+        } else {
+            core.info('🔄 Using provided AgentRouter for agent discovery');
+        }
+        
+        // Generate agent discovery context for the current agent
+        const availableAgents = agentRouter.generateAgentDiscoveryContext(agent);
+        
+        // Get mentions from the agent (for context in prompts)
+        const mentions = agent.mentions || [];
+        
+        core.info(`🔍 Agent discovery: Found ${availableAgents.length} available agents for context`);
+        if (availableAgents.length > 0) {
+            core.info(`   Available agents: ${availableAgents.map(a => a.name).join(', ')}`);
+        }
+        
+        // Prepare prompt with proper context (note: parameter order is config, availableAgents, mentions, globalConfig)
+        const promptData = await preparePrompt(agent, availableAgents, mentions, config);
+        
+        if (dryRun) {
+            core.info('🏃 DRY RUN: Prepared prompt and context, but not executing agent');
+            core.info(`📝 Final prompt length: ${promptData.prompt.length} characters`);
+            core.info(`📝 Final prompt preview:\n${promptData.prompt.substring(0, 500)}...`);
+            
+            // Save the full prompt to a file for examination
+            const fs = require('fs');
+            const path = require('path');
+            try {
+                const promptFileName = `generated-final-prompt-${agent.name || 'unknown'}-${Date.now()}.md`;
+                const promptFile = path.join(process.cwd(), promptFileName);
+                fs.writeFileSync(promptFile, promptData.prompt, 'utf8');
+                core.info(`📄 Full prompt saved to: ${promptFile}`);
+                core.info(`📏 Saved prompt length: ${promptData.prompt.length} characters`);
+            } catch (error) {
+                core.warning(`Failed to save prompt to file: ${error.message}`);
+            }
+            
+            return;
+        }
+        
+        // Execute the agent
+        const response = await executeAgent(agent, promptData, config, dryRun);
+        
+        // Process output and create structured report
+        const processedOutput = await processAgentOutput(response, agent);
+
+        // Set outputs for subsequent workflow steps
+        // setOutputs({
+        //   ...processedOutput.outputs,
+        // });
+        
+    } catch (error) {
+        core.error(`Error in executeMainAgent: ${error.message}`);
+        throw error;
+    }
+}
+
+module.exports = {
+  executeMainAgent
+}; 

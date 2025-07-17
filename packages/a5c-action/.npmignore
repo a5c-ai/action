@@ -1,0 +1,12 @@
+# Exclude development files
+test/
+coverage/
+.vscode/
+*.log
+*.tgz
+node_modules/
+tsconfig.json
+jest.config.js
+.eslintrc.js
+.gitignore
+.github/
