@@ -8,6 +8,7 @@ const Handlebars = require('handlebars');
 const { loadConfig } = require('./src/config');
 const { executeMainAgent } = require('./src/agent-executor');
 const { handleMentionBasedActivation, handleEventBasedActivation, getMentionableContent } = require('./src/agent-router');
+const { initializeTemplateHelpers } = require('./src/template-handler');
 
 const logoAscii = fs.readFileSync(path.join(__dirname, 'logo-ascii.txt'), 'utf8');
 // Initialize Handlebars helpers
@@ -30,6 +31,9 @@ Handlebars.registerHelper('contains', function(haystack, needle, options) {
 Handlebars.registerHelper('formatDate', function(date) {
   return new Date(date).toISOString();
 });
+
+// Initialize template inclusion helpers
+initializeTemplateHelpers(Handlebars);
 
 async function main() {
   try {
