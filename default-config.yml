@@ -26,25 +26,25 @@ remote_agents:
   sources:
     individual:
       # development agents
-      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/developer-agent.agent.md"
-        alias: "developer-agent"
-      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/validator-agent.agent.md"
-        alias: "validator-agent"
+      # - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/developer-agent.agent.md"
+      #   alias: "developer-agent"
+      # - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/validator-agent.agent.md"
+      #   alias: "validator-agent"
       # - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/project-seeder-agent.agent.md"
       #   alias: "project-seeder-agent"
       # - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/development/build-fixer-agent.agent.md"
       #   alias: "build-fixer-agent"
       # researcher agents
-      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/research/researcher-base-agent.agent.md"
-        alias: "researcher-base-agent"
+      # - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/research/researcher-base-agent.agent.md"
+      #   alias: "researcher-base-agent"
 
       # communication agents
-      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/communication/discord-manager-agent.agent.md"
-        alias: "discord-manager-agent"
-      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/communication/slack-manager-agent.agent.md"
-        alias: "slack-manager-agent"
-      - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/communication/content-writer-agent.agent.md"
-        alias: "content-writer-agent"
+      # - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/communication/discord-manager-agent.agent.md"
+      #   alias: "discord-manager-agent"
+      # - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/communication/slack-manager-agent.agent.md"
+      #   alias: "slack-manager-agent"
+      # - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/communication/content-writer-agent.agent.md"
+      #   alias: "content-writer-agent"
 
       # news agents
       # - uri: "https://raw.githubusercontent.com/a5c-ai/registry/main/agents/news/news-aggregator-agent.agent.md"
