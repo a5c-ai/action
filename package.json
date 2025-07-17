@@ -4,7 +4,7 @@
   "description": "AI agent system for GitHub automation with Claude integration",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "keywords": [
     "github-action",

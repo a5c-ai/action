@@ -467,6 +467,7 @@ class AgentRouter {
         cli_command: parsed.attributes.cli_command || null,
         agent_discovery: parsed.attributes.agent_discovery || null,
         prompt_uri: parsed.attributes.prompt_uri || parsed.attributes['prompt-uri'] || null,
+        user_whitelist: this.parseListField(parsed.attributes.user_whitelist),
         source: 'remote',
         remote_uri: uri,
         content: parsed.body
@@ -656,6 +657,7 @@ class AgentRouter {
         cli_command: parsed.attributes.cli_command || null,
         agent_discovery: parsed.attributes.agent_discovery || null,
         prompt_uri: parsed.attributes.prompt_uri || parsed.attributes['prompt-uri'] || null,
+        user_whitelist: this.parseListField(parsed.attributes.user_whitelist),
         source: 'local',
         content: parsed.body
       };

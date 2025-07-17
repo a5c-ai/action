@@ -30,8 +30,36 @@ async function handleMentionBasedActivation(config, dryRun = false) {
       return;
     }
     
+    // Get triggering user from context
+    const username = context.actor;
+    const { owner, repo } = context.repo;
+    
+    // Filter agents by user permission
+    const { isUserAllowedToTrigger } = require('./utils');
+    const allowedAgents = [];
+    
+    for (const agent of mentionedAgents) {
+      // Get user whitelist from agent or global config
+      const whitelist = agent.user_whitelist && agent.user_whitelist.length > 0 
+        ? agent.user_whitelist 
+        : (config.defaults?.user_whitelist || []);
+      
+      const isAllowed = await isUserAllowedToTrigger(username, whitelist, owner, repo);
+      
+      if (isAllowed) {
+        allowedAgents.push(agent);
+      } else {
+        core.warning(`⚠️ User ${username} is not allowed to trigger agent: ${agent.name}`);
+      }
+    }
+    
+    if (allowedAgents.length === 0) {
+      core.warning(`⚠️ User ${username} is not allowed to trigger any of the mentioned agents`);
+      return;
+    }
+    
     // Execute agents in mention order
-    await executeAgentSequence(mentionedAgents, config, router, dryRun);
+    await executeAgentSequence(allowedAgents, config, router, dryRun);
     
   } catch (error) {
     core.setFailed(`Mention-based activation failed: ${error.message}`);
@@ -57,8 +85,36 @@ async function handleEventBasedActivation(config, dryRun = false) {
       return;
     }
     
+    // Get triggering user from context
+    const username = context.actor;
+    const { owner, repo } = context.repo;
+    
+    // Filter agents by user permission
+    const { isUserAllowedToTrigger } = require('./utils');
+    const allowedAgents = [];
+    
+    for (const agent of triggeredAgents) {
+      // Get user whitelist from agent or global config
+      const whitelist = agent.user_whitelist && agent.user_whitelist.length > 0 
+        ? agent.user_whitelist 
+        : (config.defaults?.user_whitelist || []);
+      
+      const isAllowed = await isUserAllowedToTrigger(username, whitelist, owner, repo);
+      
+      if (isAllowed) {
+        allowedAgents.push(agent);
+      } else {
+        core.warning(`⚠️ User ${username} is not allowed to trigger agent: ${agent.name}`);
+      }
+    }
+    
+    if (allowedAgents.length === 0) {
+      core.warning(`⚠️ User ${username} is not allowed to trigger any of the agents`);
+      return;
+    }
+    
     // Execute agents in priority order
-    await executeAgentSequence(triggeredAgents, config, router, dryRun);
+    await executeAgentSequence(allowedAgents, config, router, dryRun);
     
   } catch (error) {
     core.setFailed(`Event-based activation failed: ${error.message}`);
