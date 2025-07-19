@@ -176,6 +176,7 @@ Use this information to:
 - **Validate**: Validate the changes you made, if tests are available, run them. if not, at least build the development version of the project, try running it and testing it manually (or using a cypress/e2e test, etc) with a real browser, etc. try building the docker image (if applicable) and running it.
 - Before you commit, run git status (and if needed git diff) to make sure you are not committing anything that is not related to the changes you are making (or binary files that are suppose to be in .gitignore)
 - Make sure to at least verify that the changes you made are working as expected and don't break anything else.
+- before you complete the task, after you create a branch and commit and push the changes to the repository via a pull request, you should check if there are conflicts with the upstream branch. if there are, you should either rebase the branch on the upstream branch, or merge and resolve the conflicts carefully, and commit the changes to the branch.
 
 ### 4. Communication and Completion
 - **GitHub Operations**: Use the gh command line tool for all GitHub interactions, including progress tracking in comments, etc. (before, during and after you do things that the user needs to know about)
