@@ -307,6 +307,88 @@ function getRepositoryInfo(context = github.context) {
   };
 }
 
+/**
+ * Get repository team members from GitHub API
+ * @param {string} owner - Repository owner (username or organization)
+ * @param {string} repo - Repository name
+ * @returns {Promise<string[]>} - Array of team member usernames
+ */
+async function getRepositoryTeamMembers(owner, repo) {
+  try {
+    const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
+    if (!token) {
+      core.warning('No GitHub token available for fetching team members');
+      return [];
+    }
+    
+    const octokit = github.getOctokit(token);
+    
+    // For organizations, get team members
+    if (isOrganization(owner)) {
+      try {
+        const { data: orgMembers } = await octokit.rest.orgs.listMembers({
+          org: owner
+        });
+        
+        return orgMembers.map(member => member.login);
+      } catch (error) {
+        if (error.status === 404) {
+          core.warning(`Organization not found or not accessible: ${owner}`);
+        } else {
+          core.warning(`Error fetching organization members: ${error.message}`);
+        }
+        return [];
+      }
+    }
+    
+    // For user repositories, get collaborators
+    try {
+      const { data: collaborators } = await octokit.rest.repos.listCollaborators({
+        owner,
+        repo
+      });
+      
+      return collaborators.map(collaborator => collaborator.login);
+    } catch (error) {
+      core.warning(`Error fetching repository collaborators: ${error.message}`);
+      return [];
+    }
+  } catch (error) {
+    core.warning(`Error fetching team members: ${error.message}`);
+    return [];
+  }
+}
+
+/**
+ * Check if a user is allowed to trigger an agent
+ * @param {string} username - GitHub username to check
+ * @param {Array<string>} whitelist - Whitelist of allowed users
+ * @param {string} owner - Repository owner (username or organization)
+ * @param {string} repo - Repository name
+ * @returns {Promise<boolean>} - True if user is allowed
+ */
+async function isUserAllowedToTrigger(username, whitelist, owner, repo) {
+  // If whitelist is empty, fall back to team members
+  if (!whitelist || whitelist.length === 0) {
+    const teamMembers = await getRepositoryTeamMembers(owner, repo);
+    return teamMembers.includes(username);
+  }
+  
+  // Otherwise check against whitelist
+  return whitelist.includes(username);
+}
+
+/**
+ * Check if an owner is an organization (as opposed to a user)
+ * @param {string} owner - Repository owner
+ * @returns {boolean} - True if owner is likely an organization
+ */
+function isOrganization(owner) {
+  // This is a heuristic - organizations usually have different naming patterns
+  // than users, but this could be improved with an API call to check the type
+  return !owner.includes('-') && owner.length > 2;
+}
+
 module.exports = {
   delay,
   parseFrontmatter,
@@ -319,5 +401,8 @@ module.exports = {
   deepMerge,
   sanitizeId,
   formatExecutionTime,
-  getRepositoryInfo
+  getRepositoryInfo,
+  getRepositoryTeamMembers,
+  isUserAllowedToTrigger,
+  isOrganization
 }; 
