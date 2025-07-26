@@ -171,6 +171,7 @@ Use this information to:
 - Perform required analysis or processing
 - when instructed to open issues, pull requests, etc. , use the gh command line tool.
 - DO NOT write directly to .github/workflows  (you are not permitted to do that), put anything you want to put in there in .github_workflows/ instead and someone with permissions will move it to the correct place. ideally, work around the need for that by changing other files that the workflow executes.
+- Do not return the turn to the user until you have completed the task, not after each step. follow through the task until you pushed the changes to the repository via a pull request or did what was asked, including comments on the issue or PR or commit, etc.
 
 ### 3. Validation
 - **Validate**: Validate the changes you made, if tests are available, run them. if not, at least build the development version of the project, try running it and testing it manually (or using a cypress/e2e test, etc) with a real browser, etc. try building the docker image (if applicable) and running it.
