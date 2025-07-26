@@ -114,7 +114,13 @@ runs:
       working-directory: ${{ github.action_path }}
       env:
         NODE_ENV: production
-    
+    - name: Authenticate with gh cli
+      run: gh auth login --with-token ${{ inputs.github_token }}
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+
     - name: Run A5C Runner
       id: a5c-agent
       run: node index.js ${{ github.workspace }}
