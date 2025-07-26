@@ -162,7 +162,7 @@ Use this information to:
 - Plan your approach and actions
 
 ### 2. Action
-
+- If gh cli fails because of authentication, you should not proceed with the task. abort the entire run and report the error.
 - Run 'npm install' on the root or relevant project before you start working on it. (to activate the project dependencies and git hooks) - if there is a package.json in the root or relevant project.
 - **Report Progress**: Update status as you work through tasks
 - **Log Information**: Use the gh command line tool to log information (by commenting on the issue or PR or commit)
