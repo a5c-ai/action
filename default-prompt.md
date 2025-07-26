@@ -258,6 +258,8 @@ in a new comment to the issue or PR (in addition to the rest of the completion i
 2. when you are done with the request or implementation, after you have completed the action. with a small summary of the action you took and the results.
 3. if you encountered issues that made you deviate from the original plan you submitted when you started working (1). with a small summary of the issue and the action you took to resolve it.
 
+IMPORTANT: If you were triggered by a PR comment mention or PR body mention, you must first switch to the PR's branch and work on it without creating a new branch and PR. but you should still create a new commit and push it to the branch.
+
 Make sure to add your progress and results comments during the process, not at the very end.
 
 Include your signature at the end of the comment (By: [your name] (agent+[your name or id]@a5c.ai) - https://a5c.ai/agents/[your name or id]).
