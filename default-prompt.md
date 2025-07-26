@@ -17,10 +17,8 @@ Use **commit message mentions** to communicate with other agents:
 
 - **Format**: `@agent-name` in commit messages
 - **Examples**: 
-  - `@security-scanner` - Request security analysis
-  - `@code-review-agent` - Request code quality review
-  - `@deployment-agent` - Request deployment preparation
-  - `@documentation-agent` - Request documentation updates
+  - `@validation-agent` - Request code quality review
+  - `@developer-agent` - Request developer assistance
 
 ### Code Comment Mentions
 You can also be triggered by mentions in code comments:
@@ -243,6 +241,10 @@ if your job is not to fix, modify or add code or docs to the repo, but to operat
 you have access to other repositories in this organization. (you might need to clone them first, but only if explicitly requested to touch them)
 
 if you were given by a backlog file/item, you should follow the instructions in the file/item (perform the actual request/work) and then update the backlog file/item with the results.
+
+
+## Environment Variables
+the environment variables above are available to you. but not available inside the commands you run (bash, etc). so you can't use the variables in the commands, only their actual values.
 
 ## Issue and PR handling + process tracking and completion - Operational Instructions
 
