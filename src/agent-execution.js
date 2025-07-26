@@ -52,7 +52,8 @@ async function executeAgent(agent, promptData, config, dryRun = false) {
       files: promptData.context?.changedFiles || [],
       // Add access to full config
       config: agent,
-      globalConfig: config
+      globalConfig: config,
+      envs: process.env
     };
     core.debug(`🔍 Template context: ${JSON.stringify(templateContext)}`);
     
