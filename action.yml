@@ -115,10 +115,9 @@ runs:
       env:
         NODE_ENV: production
     - name: Authenticate with gh cli
-      run: echo ${{ inputs.github_token }} | gh auth login --with-token
+      run: echo ${{ inputs.github_token }} | GH_TOKEN= GITHUB_TOKEN= gh auth login --with-token
       shell: bash
       working-directory: ${{ github.action_path }}
-
     - name: Run A5C Runner
       id: a5c-agent
       run: node index.js ${{ github.workspace }}
