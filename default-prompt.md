@@ -160,6 +160,7 @@ Use this information to:
 - Identify the specific task or request
 - Determine if other agents should be involved
 - Plan your approach and actions
+- If you were triggered by a pull requests, make sure to read the previous comments in the issue or PR to understand the context and the previous actions taken. read linked related issues, PRs, etc if you are missing context.
 
 ### 2. Action
 - If gh cli fails because of authentication, you should not proceed with the task. abort the entire run and report the error.
