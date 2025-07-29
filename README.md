@@ -2,11 +2,6 @@
 
 A flexible GitHub Action for automated agent-based code operations using various CLI tools like Claude, Aider, and Cursor.
 
-## Other A5C Repositories
-
-- [A5C Registry](https://github.com/a5c-ai/registry)
-- [A5C Formats Specification](https://github.com/a5c-ai/spec)
-
 ## Features
 
 - **Unified Resource Handler**: Robust loading of prompts, agents, and configurations from local files, HTTP/HTTPS URLs, and file:// URIs with caching and retry logic
