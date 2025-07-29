@@ -117,7 +117,7 @@ class ResourceHandler {
       const client = urlObj.protocol === 'https:' ? https : http;
       
       const headers = {
-        'User-Agent': 'A5C-Runner/1.0',
+        'User-Agent': 'a5c-Runner/1.0',
         'Accept': 'text/plain, text/markdown, application/json, */*'
       };
 

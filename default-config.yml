@@ -1,4 +1,4 @@
-# Built-in default configuration for A5C Runner
+# Built-in default configuration for a5c Runner
 # This configuration is embedded in the action and provides sensible defaults
 # Users can override any of these settings in their .a5c/config.yml file
 

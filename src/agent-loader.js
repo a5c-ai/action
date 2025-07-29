@@ -8,7 +8,7 @@ const Handlebars = require('handlebars');
 const { validateAgentConfig, logValidationErrors } = require('./agent-validator');
 const semver = require('semver');
 
-// Security: Allowlist of permitted organizations for A5C URIs
+// Security: Allowlist of permitted organizations for a5c URIs
 const ALLOWED_ORGS = ['a5c-ai', 'trusted-org'];
 
 // Rate limiting for API calls
@@ -125,17 +125,17 @@ function sanitizePath(filePath) {
 }
 
 /**
- * Load agent from A5C URI with semantic versioning support
- * @param {string} a5cUri - A5C URI: a5c://org/repo/path/to/agent@^1.0.0
+ * Load agent from a5c URI with semantic versioning support
+ * @param {string} a5cUri - a5c URI: a5c://org/repo/path/to/agent@^1.0.0
  * @returns {Promise<string>} - Agent content
  */
 async function loadA5CAgent(a5cUri) {
-  core.info(`📋 Loading A5C agent from: ${a5cUri}`);
+  core.info(`📋 Loading a5c agent from: ${a5cUri}`);
   
-  // Parse A5C URI: a5c://org/repo/path/to/agent@^1.0.0
+  // Parse a5c URI: a5c://org/repo/path/to/agent@^1.0.0
   const uriMatch = a5cUri.match(/^a5c:\/\/([^\/]+)\/([^\/]+)\/(.+)@(.+)$/);
   if (!uriMatch) {
-    throw new Error(`Invalid A5C URI format. Expected format: a5c://org/repo/path/to/agent@version`);
+    throw new Error(`Invalid a5c URI format. Expected format: a5c://org/repo/path/to/agent@version`);
   }
   
   const [, org, repo, agentPath, versionSpec] = uriMatch;
@@ -160,7 +160,7 @@ async function loadA5CAgent(a5cUri) {
     throw new Error('Invalid agent path format');
   }
   
-  core.debug(`🔍 Parsed A5C URI: org=${org}, repo=${repo}, path=${agentPath}`);
+  core.debug(`🔍 Parsed a5c URI: org=${org}, repo=${repo}, path=${agentPath}`);
   
   // Rate limiting check
   const rateLimitKey = `a5c:${org}/${repo}`;
@@ -274,7 +274,7 @@ async function loadAgentConfig(agentUri) {
     const agentPath = `.a5c/agents/${agentId}.agent.md`;
     agentContent = fs.readFileSync(agentPath, 'utf8');
   } else if (agentUri.startsWith('a5c://')) {
-    // A5C URI with semantic versioning: a5c://org/repo/path/to/agent@^1.0.0
+    // a5c URI with semantic versioning: a5c://org/repo/path/to/agent@^1.0.0
     agentContent = await loadA5CAgent(agentUri);
   } else {
     // Assume it's a local file path - sanitize to prevent directory traversal
@@ -479,7 +479,7 @@ async function loadBaseAgent(fromSpec) {
     }
     baseAgentContent = fs.readFileSync(agentPath, 'utf8');
   } else if (fromSpec.startsWith('a5c://')) {
-    // A5C URI with semantic versioning: a5c://org/repo/path/to/agent@^1.0.0
+    // a5c URI with semantic versioning: a5c://org/repo/path/to/agent@^1.0.0
     baseAgentContent = await loadA5CAgent(fromSpec);
   } else if (fromSpec.includes('/') || fromSpec.includes('\\')) {
     // File path - sanitize to prevent directory traversal

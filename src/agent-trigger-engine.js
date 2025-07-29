@@ -181,7 +181,7 @@ class AgentRouter {
       
       let content;
       
-      // Handle A5C URIs with semantic versioning
+      // Handle a5c URIs with semantic versioning
       if (uri.startsWith('a5c://')) {
         const { loadA5CAgent } = require('./agent-loader');
         content = await loadA5CAgent(uri);

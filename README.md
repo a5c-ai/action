@@ -1,4 +1,4 @@
-# A5C GitHub Action
+# a5c GitHub Action
 
 A flexible GitHub Action for automated agent-based code operations using various CLI tools like Claude, Aider, and Cursor.
 
@@ -121,7 +121,7 @@ A flexible GitHub Action for automated agent-based code operations using various
 
 5. **Add the workflow** (`.github/workflows/a5c.yml`):
    ```yaml
-   name: A5C Agent System
+   name: a5c Agent System
    on:
      pull_request:
        types: [opened, synchronize]
@@ -133,7 +133,7 @@ A flexible GitHub Action for automated agent-based code operations using various
        runs-on: ubuntu-latest
        steps:
          - uses: actions/checkout@v3
-         - name: Run A5C Agents
+         - name: Run a5c Agents
            uses: ./path/to/a5c-githubaction
            with:
              github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -142,7 +142,7 @@ A flexible GitHub Action for automated agent-based code operations using various
 
    **Using Remote Configuration and Agents:**
    ```yaml
-   name: A5C Agent System with Remote Config and Agents
+   name: a5c Agent System with Remote Config and Agents
    on:
      pull_request:
        types: [opened, synchronize]
@@ -161,7 +161,7 @@ A flexible GitHub Action for automated agent-based code operations using various
          metadata: read
        steps:
          - uses: actions/checkout@v3
-         - name: Run A5C Agents with Remote Config and Agents
+         - name: Run a5c Agents with Remote Config and Agents
            uses: ./path/to/a5c-githubaction
            with:
              github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -198,7 +198,7 @@ Configuration files can be loaded from remote repositories, including private re
 
 ```yaml
 # .github/workflows/a5c.yml
-- name: Run A5C with Remote Config
+- name: Run a5c with Remote Config
   uses: ./
   with:
     config_uri: "https://raw.githubusercontent.com/myorg/shared-config/main/a5c-config.yml"
@@ -261,7 +261,7 @@ Agents are configured using YAML frontmatter in `.agent.md` files:
 
 ### Agent Inheritance
 
-A5C supports agent inheritance, allowing you to create specialized agents that inherit from base agents. This enables code reuse and hierarchical agent organization.
+a5c supports agent inheritance, allowing you to create specialized agents that inherit from base agents. This enables code reuse and hierarchical agent organization.
 
 #### Basic Inheritance
 
