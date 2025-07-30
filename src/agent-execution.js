@@ -82,14 +82,14 @@ function getModelForExecution(agent, config, template = null) {
     return agent.model;
   }
   
-  // 2. Template-specific model
-  if (template?.model) {
-    return template.model;
-  }
-  
-  // 3. Global defaults model
+  // 2. Global defaults model
   if (config.defaults?.model) {
     return config.defaults.model;
+  }
+  
+  // 3. Template-specific model (cli_agents default)
+  if (template?.model) {
+    return template.model;
   }
   
   // 4. Final fallback
