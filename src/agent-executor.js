@@ -58,11 +58,11 @@ async function executeMainAgent(agent, config, router = null, dryRun = false) {
         
         // Process output and create structured report
         const processedOutput = await processAgentOutput(response, agent);
-
-        // Set outputs for subsequent workflow steps
-        // setOutputs({
-        //   ...processedOutput.outputs,
-        // });
+        // Set outputs for subsequent workflow steps (including cost)
+        setOutputs({
+          ...processedOutput.outputs
+        });
+        return processedOutput.outputs;
         
     } catch (error) {
         core.error(`Error in executeMainAgent: ${error.message}`);
