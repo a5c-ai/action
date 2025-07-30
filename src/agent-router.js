@@ -156,19 +156,23 @@ async function executeAgentSequence(agents, globalConfig, router, dryRun = false
       const mergedConfig = mergeConfigurations(globalConfig, agentConfig);
       
       // Execute the agent with the router that has all agents loaded (including remote)
-      await executeMainAgent(mergedConfig, globalConfig, router, dryRun);
-      
+      // Execute agent and capture outputs (including cost)
+      const agentOutputs = await executeMainAgent(mergedConfig, globalConfig, router, dryRun);
+      const agentCost = (agentOutputs && typeof agentOutputs.cost === 'number') ? agentOutputs.cost : 0;
       results.push({
         agent_id: agentInfo.id,
         agent_name: agentInfo.name,
         agent_category: agentInfo.category,
         success: true,
+        cost: agentCost,
         triggered_by: agentInfo.triggeredBy,
         priority: agentInfo.priority || 0,
         source: agentInfo.source || 'local'
       });
-      
-      core.info(`   ✅ Agent ${agentInfo.name} completed successfully`);      
+      if (agentCost > 0) {
+        core.info(`   💰 Cost for agent ${agentInfo.name}: $${agentCost.toFixed(6)}`);
+      }
+      core.info(`   ✅ Agent ${agentInfo.name} completed successfully`);
     } catch (error) {
       core.error(`   ❌ Agent ${agentInfo.name} failed: ${error.message}`);
       allSuccessful = false;
@@ -180,6 +184,7 @@ async function executeAgentSequence(agents, globalConfig, router, dryRun = false
         agent_category: agentInfo.category,
         success: false,
         error: error.message,
+        cost: 0,
         triggered_by: agentInfo.triggeredBy,
         priority: agentInfo.priority || 0,
         source: agentInfo.source || 'local'
@@ -203,6 +208,15 @@ async function executeAgentSequence(agents, globalConfig, router, dryRun = false
   core.setOutput('agents_failed', failedAgents.length);
   core.setOutput('agent_results', JSON.stringify(results, null, 2));
   core.setOutput('summary', `Ran ${results.length} agents: ${successfulAgents.length} successful, ${failedAgents.length} failed`);
+  // Report cost summary for all agent runs
+  const totalCost = results.reduce((sum, r) => sum + (r.cost || 0), 0);
+  core.info(`💰 Total cost: $${totalCost.toFixed(6)}`);
+  core.setOutput('total_cost', totalCost);
+  core.setOutput('agent_costs', JSON.stringify(
+    results.map(r => ({ agent_name: r.agent_name, cost: r.cost })),
+    null,
+    2
+  ));
   
   if (allSuccessful) {
     core.info('✅ All agents completed successfully');
