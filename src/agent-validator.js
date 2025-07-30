@@ -63,6 +63,22 @@ const agentConfigSchema = {
       type: 'string',
       maxLength: 1000
     },
+    cli_agent: {
+      type: 'string',
+      enum: ['claude', 'codex', 'azure_codex', 'gemini']
+    },
+    envs: {
+      type: 'object',
+      additionalProperties: {
+        type: 'string'
+      }
+    },
+    inject_prompt_to_stdin: {
+      type: 'boolean'
+    },
+    inject_envs_to_prompt: {
+      type: 'boolean'
+    },
     mcp_servers: {
       type: 'array',
       items: {

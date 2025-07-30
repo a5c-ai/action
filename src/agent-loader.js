@@ -540,7 +540,8 @@ function mergeAgentConfigs(baseConfig, childConfig) {
   // Fields that can be overridden
   const overridableFields = [
     'name', 'version', 'category', 'description', 'model', 'max_turns', 'timeout',
-    'priority', 'mentions', 'usage_context', 'invocation_context', 'cli_command',
+    'priority', 'mentions', 'usage_context', 'invocation_context', 'cli_command', 'cli_agent',
+    'envs', 'inject_prompt_to_stdin', 'inject_envs_to_prompt',
     'mcp_servers', 'events', 'labels', 'branches', 'paths', 
     'activation_cron', 'agent_discovery', 'prompt_uri', 'prompt_content'
   ];

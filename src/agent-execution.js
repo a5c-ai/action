@@ -8,6 +8,149 @@ const Handlebars = require('handlebars');
 const { createMCPConfigFile, cleanupMCPConfig } = require('./mcp-manager');
 const artifact = require('@actions/artifact');
 
+// Get CLI command using fallback hierarchy: agent.cli_command -> defaults -> cli_agents templates -> A5C_CLI_TOOL env variable
+function getCliCommand(agent, config) {
+  // 1. Check if agent has explicit cli_command
+  if (agent.cli_command) {
+    core.info('🔍 Using CLI command from agent configuration');
+    return buildFinalCliCommand(agent.cli_command, agent, config);
+  }
+  
+  // 2. Check if defaults has cli_command
+  if (config.defaults?.cli_command) {
+    core.info('🔍 Using CLI command from defaults configuration');
+    return buildFinalCliCommand(config.defaults.cli_command, agent, config);
+  }
+  
+  // 3. Check cli_agents templates based on agent preferences
+  if (config.cli_agents) {
+    const templateKey = selectCliAgentTemplate(agent, config);
+    if (templateKey && config.cli_agents[templateKey]?.cli_command) {
+      core.info(`🔍 Using CLI command from cli_agents template: ${templateKey}`);
+      const template = config.cli_agents[templateKey];
+      return buildFinalCliCommand(template.cli_command, agent, config, template);
+    }
+  }
+  
+  // 4. Final fallback to A5C_CLI_TOOL environment variable
+  if (process.env.A5C_CLI_TOOL) {
+    core.info('🔍 Using CLI command from A5C_CLI_TOOL environment variable');
+    return buildFinalCliCommand(process.env.A5C_CLI_TOOL, agent, config);
+  }
+  
+  return null;
+}
+
+// Build the final CLI command with all the configuration options applied
+function buildFinalCliCommand(baseCommand, agent, config, template = null) {
+  let finalCommand = baseCommand;
+  
+  // Handle environment variables prefix
+  if (template?.envs) {
+    const envVars = Object.entries(template.envs)
+      .map(([key, value]) => `${key}=${value}`)
+      .join(' ');
+    finalCommand = `${envVars} ${finalCommand}`;
+    core.debug(`🔍 Added environment variables: ${envVars}`);
+  }
+  
+  // Handle prompt injection to stdin
+  if (template?.inject_prompt_to_stdin) {
+    finalCommand = `cat {{prompt_path}} | ${finalCommand}`;
+    core.debug('🔍 Added prompt injection to stdin');
+  }
+  
+  // Handle environment variables injection to prompt
+  if (template?.inject_envs_to_prompt) {
+    if (template?.inject_prompt_to_stdin) {
+      // If both are enabled, pipe printenv before cat
+      finalCommand = finalCommand.replace('cat {{prompt_path}}', 'printenv | cat - {{prompt_path}}');
+    } else {
+      // If only env injection is enabled, add it as a prefix
+      finalCommand = `printenv | ${finalCommand}`;
+    }
+    core.debug('🔍 Added environment variables injection to prompt');
+  }
+  
+  return finalCommand;
+}
+
+// Get the model to use with fallback hierarchy
+function getModelForExecution(agent, config, template = null) {
+  // 1. Agent-specific model
+  if (agent.model) {
+    return agent.model;
+  }
+  
+  // 2. Template-specific model
+  if (template?.model) {
+    return template.model;
+  }
+  
+  // 3. Global defaults model
+  if (config.defaults?.model) {
+    return config.defaults.model;
+  }
+  
+  // 4. Final fallback
+  return 'claude-3-5-sonnet-20241022';
+}
+
+// Get the selected template object (if any) for model and other fallbacks
+function getSelectedTemplate(agent, config) {
+  if (!config.cli_agents) {
+    return null;
+  }
+  
+  const templateKey = selectCliAgentTemplate(agent, config);
+  if (templateKey && config.cli_agents[templateKey]) {
+    return config.cli_agents[templateKey];
+  }
+  
+  return null;
+}
+
+// Select the appropriate cli_agents template based on agent configuration
+function selectCliAgentTemplate(agent, config) {
+  // Check if agent specifies a preferred cli_agent
+  if (agent.cli_agent && config.cli_agents[agent.cli_agent]) {
+    return agent.cli_agent;
+  }
+  
+  // Check if global config specifies a default cli_agent
+  if (config.defaults?.cli_agent && config.cli_agents[config.defaults.cli_agent]) {
+    return config.defaults.cli_agent;
+  }
+  
+  // Auto-detect based on available tools or model preferences
+  const model = agent.model || config.defaults?.model || '';
+  
+  // Auto-detection logic based on model naming patterns
+  if (model.includes('claude') || model.includes('sonnet') || model.includes('haiku') || model.includes('opus')) {
+    if (config.cli_agents.claude) return 'claude';
+  }
+  
+  if (model.includes('gpt') || model.includes('o1') || model.includes('o4')) {
+    // Check for Azure environment variables first
+    if (process.env.AZURE_OPENAI_PROJECT_NAME && config.cli_agents.azure_codex) {
+      return 'azure_codex';
+    }
+    if (config.cli_agents.codex) return 'codex';
+  }
+  
+  if (model.includes('gemini')) {
+    if (config.cli_agents.gemini) return 'gemini';
+  }
+  
+  // Default fallback to first available template
+  const availableTemplates = Object.keys(config.cli_agents);
+  if (availableTemplates.length > 0) {
+    return availableTemplates[0];
+  }
+  
+  return null;
+}
+
 // Execute agent using CLI command
 async function executeAgent(agent, promptData, config, dryRun = false) {
   const startTime = Date.now();
@@ -20,12 +163,15 @@ async function executeAgent(agent, promptData, config, dryRun = false) {
     agent.id = Math.random().toString(36).substring(2, 15);
   }
   try {
-    // Get CLI command from agent config or fall back to defaults
-    const cliCommand = agent.cli_command || config.defaults?.cli_command;
+    // Get CLI command using the new fallback hierarchy
+    const cliCommand = getCliCommand(agent, config);
     
     if (!cliCommand) {
-      throw new Error('No CLI command specified');
+      throw new Error('No CLI command specified in agent, defaults, cli_agents templates, or A5C_CLI_TOOL environment variable');
     }
+    
+    // Get the template that was selected (if any) for model fallback
+    const selectedTemplate = getSelectedTemplate(agent, config);
     
     core.info(`🔍 CLI command: ${cliCommand}`);
 
@@ -46,7 +192,7 @@ async function executeAgent(agent, promptData, config, dryRun = false) {
       prompt: promptData.prompt,
       prompt_path: null, // Will be set if we create a temp file
       mcp_config: null,  // Will be set if MCP is configured
-      model: agent.model || config.defaults?.model || 'claude-3-5-sonnet-20241022',
+      model: getModelForExecution(agent, config, selectedTemplate),
       max_turns: agent.max_turns || config.defaults?.max_turns || 10,
       verbose: agent.verbose || config.defaults?.verbose || false,
       files: promptData.context?.changedFiles || [],
@@ -113,7 +259,9 @@ async function executeAgent(agent, promptData, config, dryRun = false) {
     const result = await executeCommand(renderedCommand, {
       statusFd,
       logFd,
-      agentId: agent.id
+      agentId: agent.id,
+      agent,
+      config
     });
     
     const executionTime = Date.now() - startTime;
@@ -491,11 +639,12 @@ async function executeCommand(commandString, options = {}) {
       reject(new Error(`Command execution failed: ${error.message}`));
     });
     
-    // Set timeout
+    // Set timeout from config with fallback hierarchy: agent.timeout -> defaults.timeout -> 30 minutes
+    const timeoutMinutes = options.agent?.timeout || options.config?.defaults?.timeout || 30;
     const timeout = setTimeout(() => {
       process.kill('SIGTERM');
       reject(new Error('Command execution timed out'));
-    }, 30 * 60 * 1000); // 30 minutes
+    }, timeoutMinutes * 60 * 1000); // Convert minutes to milliseconds
     
     aprocess.on('close', () => {
       clearTimeout(timeout);

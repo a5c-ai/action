@@ -259,6 +259,45 @@ runs:
       shell: bash
       working-directory: ${{ github.workspace }}
       
+    - name: Verify CLI Tool Configuration and create issue if needed
+      run: |
+        echo "Checking for CLI tool configuration..."
+        if [[ -n "$A5C_CLI_TOOL" ]]; then
+          echo "A5C_CLI_TOOL environment variable found: $A5C_CLI_TOOL"
+        else
+          echo "A5C_CLI_TOOL environment variable not set - will use default fallback logic"
+          
+          # Check if issues are enabled before creating one
+          ISSUES_ENABLED=$(gh repo view --json hasIssuesEnabled --jq '.hasIssuesEnabled')
+          
+          if [ "$ISSUES_ENABLED" = "true" ]; then
+            echo "Creating GitHub issue to request A5C_CLI_TOOL configuration..."
+            
+            # Check if issue with exact same title already exists and is open
+            ISSUE_TITLE="Configure A5C_CLI_TOOL Environment Variable for Enhanced AI Provider Support"
+            EXISTING_ISSUE=$(gh issue list --state open --json number,title --jq --arg title "$ISSUE_TITLE" '.[] | select(.title == $title) | .number' | head -n1)
+            
+            if [[ -z "$EXISTING_ISSUE" ]]; then
+              # Create the issue with a simple message
+              gh issue create \
+                --title "$ISSUE_TITLE" \
+                --label "a5c-config,enhancement" \
+                --body "Please configure the A5C_CLI_TOOL environment variable in repository Settings → Secrets and variables → Actions → Variables for enhanced AI provider support. This ensures consistent CLI command fallback behavior. See https://github.com/a5c-ai/action for documentation. This issue was automatically created by the a5c Runner action."
+              
+              echo "✅ Created GitHub issue requesting A5C_CLI_TOOL configuration"
+            else
+              echo "ℹ️ Issue with title '$ISSUE_TITLE' already exists and is open (Issue #$EXISTING_ISSUE)"
+            fi
+          else
+            echo "⚠️ Issues are disabled - cannot create issue for A5C_CLI_TOOL configuration request"
+            echo "💡 Consider enabling Issues in repository settings or manually configure A5C_CLI_TOOL"
+          fi
+        fi
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL }}
+        
     - name: Run a5c Runner
       id: a5c-agent
       run: node index.js ${{ github.workspace }}
@@ -272,4 +311,5 @@ runs:
         INPUT_CONFIG_URI: ${{ inputs.config_uri }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github_token }} 
         ACTIONS_RUNTIME_TOKEN: ${{ env.ACTIONS_RUNTIME_TOKEN }}
+        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL }}
 
