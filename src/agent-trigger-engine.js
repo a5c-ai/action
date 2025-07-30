@@ -465,9 +465,18 @@ class AgentRouter {
         priority: parseInt(parsed.attributes.priority) || 0,
         mcp_servers: this.parseListField(parsed.attributes.mcp_servers),
         cli_command: parsed.attributes.cli_command || null,
+        cli_agent: parsed.attributes.cli_agent || null,
         agent_discovery: parsed.attributes.agent_discovery || null,
         prompt_uri: parsed.attributes.prompt_uri || parsed.attributes['prompt-uri'] || null,
         user_whitelist: this.parseListField(parsed.attributes.user_whitelist),
+        // Add missing execution configuration fields
+        model: parsed.attributes.model || null,
+        max_turns: parsed.attributes.max_turns || null,
+        timeout: parsed.attributes.timeout || null,
+        verbose: parsed.attributes.verbose || null,
+        envs: parsed.attributes.envs || null,
+        inject_prompt_to_stdin: parsed.attributes.inject_prompt_to_stdin || null,
+        inject_envs_to_prompt: parsed.attributes.inject_envs_to_prompt || null,
         source: 'remote',
         remote_uri: uri,
         content: parsed.body
