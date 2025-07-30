@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const https = require('https');
 const http = require('http');
 const core = require('@actions/core');
@@ -96,7 +97,7 @@ class ResourceHandler {
     try {
       return fs.readFileSync(filePath, 'utf8');
     } catch (error) {
-      throw new Error(`Failed to read file ${filePath}: ${error.message}`);
+      throw new Error(`Failed to read file: Access denied or file not found`);
     }
   }
 
@@ -200,6 +201,14 @@ class ResourceHandler {
       'api.github.com'
     ];
     
+    // Blocked paths that could expose sensitive information
+    const BLOCKED_PATHS = [
+      '/admin',
+      '/api/v3/user',
+      '/api/v4/user',
+      '/settings'
+    ];
+    
     try {
       const urlObj = new URL(url);
       
@@ -207,6 +216,14 @@ class ResourceHandler {
       if (!ALLOWED_DOMAINS.includes(urlObj.hostname)) {
         core.warning(`🚫 Blocked URL outside allowlist: ${url}`);
         return false;
+      }
+      
+      // Check for blocked paths
+      for (const blockedPath of BLOCKED_PATHS) {
+        if (urlObj.pathname.startsWith(blockedPath)) {
+          core.warning(`🚫 Blocked access to restricted path: ${url}`);
+          return false;
+        }
       }
       
       // Additional security checks
@@ -265,6 +282,59 @@ class ResourceHandler {
   }
 }
 
+/**
+ * Validate paths to prevent path traversal attacks
+ * @param {string} resolvedPath - The path to validate
+ * @returns {string} - The validated path
+ */
+function validatePath(resolvedPath) {
+  const normalizedPath = path.normalize(resolvedPath);
+  
+  // Check for path traversal attempts
+  if (normalizedPath.includes('..') || 
+      normalizedPath.startsWith('/etc/') || 
+      normalizedPath.startsWith('/proc/') || 
+      normalizedPath.startsWith('/sys/')) {
+    throw new Error(`Path traversal attempt detected`);
+  }
+  
+  return normalizedPath;
+}
+
+/**
+ * Resolve a URI relative to a base URI or path
+ * @param {string} uri - The URI to resolve
+ * @param {string} base - The base URI or path to resolve against
+ * @returns {string} - The resolved URI
+ */
+function resolveUri(uri, base) {
+  // If URI is already absolute, return it as is
+  if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('file://') || path.isAbsolute(uri)) {
+    return uri;
+  }
+  
+  // Handle different base URI formats
+  if (base.startsWith('http://') || base.startsWith('https://')) {
+    // For HTTP(S) URLs, use URL resolution
+    try {
+      return new URL(uri, base).toString();
+    } catch (error) {
+      core.warning(`Failed to resolve URL ${uri} against base ${base}: ${error.message}`);
+      return uri;
+    }
+  } else if (base.startsWith('file://')) {
+    // For file:// URLs, resolve path and reattach the protocol
+    const basePath = base.substring(7);
+    const resolvedPath = path.resolve(path.dirname(basePath), uri);
+    const validatedPath = validatePath(resolvedPath);
+    return `file://${validatedPath}`;
+  } else {
+    // For local file paths
+    const resolvedPath = path.resolve(path.dirname(base), uri);
+    return validatePath(resolvedPath);
+  }
+}
+
 // Create default instance
 const defaultResourceHandler = new ResourceHandler();
 
@@ -273,5 +343,6 @@ module.exports = {
   ResourceHandler,
   loadResource: (uri, options) => defaultResourceHandler.loadResource(uri, options),
   clearCache: () => defaultResourceHandler.clearCache(),
-  getCacheStats: () => defaultResourceHandler.getCacheStats()
+  getCacheStats: () => defaultResourceHandler.getCacheStats(),
+  resolveUri
 }; 

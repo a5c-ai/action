@@ -538,6 +538,28 @@ Each agent specifies its CLI command as a complete template string using Handleb
 - `{{verbose}}` - Verbose flag
 - `{{files}}` - Array of changed files
 
+### Template Inclusion
+
+The template engine supports including remote or local templates using the `include` helper:
+
+```handlebars
+{{include "path/to/template.md"}}
+{{include "https://raw.githubusercontent.com/user/repo/main/template.md" title="My Title"}}
+{{include "../path/to/local-template.md" data=someVariable}}
+```
+
+**Template Inclusion Features:**
+- **Remote Templates**: Include templates from GitHub or other web sources
+- **Local Templates**: Include templates from local file system
+- **Parameter Passing**: Pass custom variables to included templates
+- **Relative Paths**: Use relative paths for template resolution
+- **Context Inheritance**: Included templates inherit parent context
+- **Raw Inclusion**: Include content without processing using `rawInclude`
+- **Nested Includes**: Templates can include other templates
+- **Security**: Circular references prevention and depth limiting
+
+See the [template inclusion example](docs/examples/template-inclusion-example.md) for more details.
+
 **Example CLI Commands:**
 
 ```yaml

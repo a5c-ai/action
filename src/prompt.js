@@ -5,6 +5,7 @@ const github = require('@actions/github');
 const Handlebars = require('handlebars');
 const { processFiles } = require('./file-processor');
 const { loadResource } = require('./resource-handler');
+const { initializeTemplateHelpers } = require('./template-handler');
 
 // Prepare prompt and context
 async function preparePrompt(config, availableAgents = [], mentions = [], globalConfig = {}) {
@@ -71,8 +72,19 @@ async function preparePrompt(config, availableAgents = [], mentions = [], global
     };
   }
   
+  // Initialize template helpers for inclusion support
+  initializeTemplateHelpers(Handlebars);
+  
   // Compile and render the main template
   const compiledTemplate = Handlebars.compile(mainTemplate);
+  
+  // Add base URI to context for resolving relative includes
+  if (config.templates?.main_prompt) {
+    templateContext._baseUri = config.templates.main_prompt;
+  } else {
+    templateContext._baseUri = path.join(__dirname, '..', 'default-prompt.md');
+  }
+  
   const renderedMainPrompt = compiledTemplate(templateContext);
   
   // Add agent-specific content
