@@ -121,6 +121,11 @@ function selectCliAgentTemplate(agent, config) {
   if (config.defaults?.cli_agent && config.cli_agents[config.defaults.cli_agent]) {
     return config.defaults.cli_agent;
   }
+
+  // fallback to A5C_CLI_TOOL environment variable
+  if (process.env.A5C_CLI_TOOL && config.cli_agents[process.env.A5C_CLI_TOOL]) {
+    return process.env.A5C_CLI_TOOL;
+  }
   
   // Auto-detect based on available tools or model preferences
   const model = agent.model || config.defaults?.model || '';
