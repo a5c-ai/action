@@ -265,7 +265,7 @@ runs:
         if [[ -n "$A5C_CLI_TOOL" ]]; then
           echo "A5C_CLI_TOOL environment variable found: $A5C_CLI_TOOL"
         else
-          echo "A5C_CLI_TOOL environment variable not set - will use default fallback logic"
+          echo "❌ A5C_CLI_TOOL environment variable not set - configuration required"
           
           # Check if issues are enabled before creating one
           ISSUES_ENABLED=$(gh repo view --json hasIssuesEnabled --jq '.hasIssuesEnabled')
@@ -292,6 +292,12 @@ runs:
             echo "⚠️ Issues are disabled - cannot create issue for A5C_CLI_TOOL configuration request"
             echo "💡 Consider enabling Issues in repository settings or manually configure A5C_CLI_TOOL"
           fi
+          
+          echo ""
+          echo "🛑 Pipeline stopped: A5C_CLI_TOOL environment variable must be configured"
+          echo "📝 Please configure A5C_CLI_TOOL in repository Settings → Secrets and variables → Actions → Variables"
+          echo "📖 See https://github.com/a5c-ai/action for documentation and examples"
+          exit 1
         fi
       shell: bash
       working-directory: ${{ github.workspace }}

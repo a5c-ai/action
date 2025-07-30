@@ -322,15 +322,26 @@ async function getRepositoryTeamMembers(owner, repo) {
     }
     
     const octokit = github.getOctokit(token);
-    
-    // For organizations, get team members
+    const members = [];
+    // For organizations, get team members and fallback to collaborators
     if (isOrganization(owner)) {
+      core.debug(`Fetching organization members for ${owner}`);
       try {
         const { data: orgMembers } = await octokit.rest.orgs.listMembers({
           org: owner
         });
+        core.debug(`Organization members: ${JSON.stringify(orgMembers)}`);
+        members.push(...orgMembers.map(member => member.login));
+        core.debug(`Organization members: ${JSON.stringify(members)}`);
         
-        return orgMembers.map(member => member.login);
+        // For user repositories, get collaborators
+        const { data: collaborators } = await octokit.rest.repos.listCollaborators({
+          owner,
+          repo
+        });
+        core.debug(`Collaborators: ${JSON.stringify(collaborators)}`);
+        members.push(...collaborators.map(collaborator => collaborator.login));
+        core.debug(`Members: ${JSON.stringify(members)}`);
       } catch (error) {
         if (error.status === 404) {
           core.warning(`Organization not found or not accessible: ${owner}`);
@@ -347,8 +358,10 @@ async function getRepositoryTeamMembers(owner, repo) {
         owner,
         repo
       });
-      
-      return collaborators.map(collaborator => collaborator.login);
+      members.push(...collaborators.map(collaborator => collaborator.login));
+      core.debug(`Collaborators: ${JSON.stringify(collaborators)}`);
+      core.debug(`Members: ${JSON.stringify(members)}`);
+      return members;
     } catch (error) {
       core.warning(`Error fetching repository collaborators: ${error.message}`);
       return [];
