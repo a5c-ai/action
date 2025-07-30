@@ -281,7 +281,7 @@ runs:
               # Create the issue with a simple message
               gh issue create \
                 --title "$ISSUE_TITLE" \
-                --label "a5c-config,enhancement" \
+                --label "enhancement" \
                 --body "Please configure the A5C_CLI_TOOL environment variable in repository Settings → Secrets and variables → Actions → Variables for enhanced AI provider support. This ensures consistent CLI command fallback behavior. See https://github.com/a5c-ai/action for documentation. This issue was automatically created by the a5c Runner action."
               
               echo "✅ Created GitHub issue requesting A5C_CLI_TOOL configuration"
