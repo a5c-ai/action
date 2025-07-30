@@ -51,6 +51,14 @@ const agentConfigSchema = {
       },
       maxItems: 10
     },
+    user_whitelist: {
+      type: 'array',
+      items: {
+        type: 'string',
+        pattern: '^[a-zA-Z0-9-_]+$'
+      },
+      maxItems: 100
+    },
     usage_context: {
       type: 'string',
       maxLength: 1000
