@@ -324,7 +324,7 @@ async function getRepositoryTeamMembers(owner, repo) {
     const octokit = github.getOctokit(token);
     const members = [];
     // For organizations, get team members and fallback to collaborators
-    if (isOrganization(owner)) {
+    if (await isOrganization(owner)) {
       core.debug(`Fetching organization members for ${owner}`);
       try {
         const { data: orgMembers } = await octokit.rest.orgs.listMembers({
@@ -394,12 +394,28 @@ async function isUserAllowedToTrigger(username, whitelist, owner, repo) {
 /**
  * Check if an owner is an organization (as opposed to a user)
  * @param {string} owner - Repository owner
- * @returns {boolean} - True if owner is likely an organization
+ * @returns {Promise<boolean>} - True if owner is an organization
  */
-function isOrganization(owner) {
-  // This is a heuristic - organizations usually have different naming patterns
-  // than users, but this could be improved with an API call to check the type
-  return !owner.includes('-') && owner.length > 2;
+async function isOrganization(owner) {
+  try {
+    const token = process.env.GITHUB_TOKEN || process.env.INPUT_GITHUB_TOKEN;
+    if (!token) {
+      core.warning('No GitHub token available for checking organization status');
+      // Fallback to heuristic if no token available
+      return !owner.includes('-') && owner.length > 2;
+    }
+    
+    const octokit = github.getOctokit(token);
+    const { data: user } = await octokit.rest.users.getByUsername({
+      username: owner
+    });
+    
+    return user.type === 'Organization';
+  } catch (error) {
+    core.warning(`Error checking if ${owner} is an organization: ${error.message}`);
+    // Fallback to heuristic on error
+    return !owner.includes('-') && owner.length > 2;
+  }
 }
 
 module.exports = {
