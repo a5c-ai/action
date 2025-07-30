@@ -275,7 +275,7 @@ runs:
             
             # Check if issue with exact same title already exists and is open
             ISSUE_TITLE="Configure A5C_CLI_TOOL Environment Variable for Enhanced AI Provider Support"
-            EXISTING_ISSUE=$(gh issue list --state open --json number,title --jq --arg title "$ISSUE_TITLE" '.[] | select(.title == $title) | .number' | head -n1)
+            EXISTING_ISSUE=$(gh issue list --state open --json number,title | jq --arg title "$ISSUE_TITLE" '.[] | select(.title == $title) | .number' | head -n1)
             
             if [[ -z "$EXISTING_ISSUE" ]]; then
               # Create the issue with a simple message
