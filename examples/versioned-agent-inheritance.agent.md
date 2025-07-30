@@ -58,9 +58,9 @@ In addition to the base security review capabilities, I will:
 - **Dependency Version Conflicts**: Identify potential security issues from version mismatches
 - **Breaking Changes Impact**: Assess security implications of breaking changes between versions
 
-## A5C Integration
+## a5c Integration
 
-This agent demonstrates the new A5C URI scheme with semantic versioning:
+This agent demonstrates the new a5c URI scheme with semantic versioning:
 - Uses `a5c://a5c-ai/agents/security/base-reviewer@^1.0.0` for inheritance
 - Inherits from the latest 1.x.x version of the base security reviewer
 - Automatically updates when new compatible versions are released

@@ -1,7 +1,7 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
 
-// Common utility functions for the A5C Runner Github Action 
+// Common utility functions for the a5c Runner Github Action 
 
 /**
  * Delay execution for specified milliseconds

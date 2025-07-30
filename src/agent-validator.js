@@ -71,6 +71,22 @@ const agentConfigSchema = {
       type: 'string',
       maxLength: 1000
     },
+    cli_agent: {
+      type: 'string',
+      enum: ['claude', 'codex', 'azure_codex', 'gemini']
+    },
+    envs: {
+      type: 'object',
+      additionalProperties: {
+        type: 'string'
+      }
+    },
+    inject_prompt_to_stdin: {
+      type: 'boolean'
+    },
+    inject_envs_to_prompt: {
+      type: 'boolean'
+    },
     mcp_servers: {
       type: 'array',
       items: {
@@ -368,7 +384,7 @@ function validateFromField(fromValue) {
       const a5cUriPattern = /^a5c:\/\/[a-zA-Z0-9-_]+\/[a-zA-Z0-9-_]+\/[a-zA-Z0-9-_/.]+@[a-zA-Z0-9-_^~>=<. ]+$/;
       if (!a5cUriPattern.test(fromValue)) {
         result.isValid = false;
-        result.errors.push(`Invalid A5C URI format. Expected format: a5c://org/repo/path/to/agent@version`);
+        result.errors.push(`Invalid a5c URI format. Expected format: a5c://org/repo/path/to/agent@version`);
       } else {
         // Extract and validate organization
         const uriMatch = fromValue.match(/^a5c:\/\/([^\/]+)\/([^\/]+)\//);
@@ -521,8 +537,8 @@ function logValidationErrors(validationResult, context = '') {
 }
 
 /**
- * Validate A5C URI format and security
- * @param {string} uri - The A5C URI to validate
+ * Validate a5c URI format and security
+ * @param {string} uri - The a5c URI to validate
  * @returns {object} - Validation result
  */
 function validateA5CUri(uri) {
@@ -538,7 +554,7 @@ function validateA5CUri(uri) {
     
     if (!match) {
       result.isValid = false;
-      result.errors.push('Invalid A5C URI format');
+      result.errors.push('Invalid a5c URI format');
       return result;
     }
     
@@ -588,7 +604,7 @@ function validateA5CUri(uri) {
     
   } catch (error) {
     result.isValid = false;
-    result.errors.push(`A5C URI validation error: ${error.message}`);
+    result.errors.push(`a5c URI validation error: ${error.message}`);
   }
   
   return result;

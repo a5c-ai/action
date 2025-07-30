@@ -1,12 +1,6 @@
-# A5C GitHub Action
+# a5c GitHub Action
 
 A flexible GitHub Action for automated agent-based code operations using various CLI tools like Claude, Aider, and Cursor.
-
-## Other A5C Repositories
-
-- [A5C Registry](https://github.com/a5c-ai/registry)
-- [A5C CLI](https://github.com/a5c-ai/cli)
-- [A5C Formats Specification](https://github.com/a5c-ai/spec)
 
 ## Features
 
@@ -127,7 +121,7 @@ A flexible GitHub Action for automated agent-based code operations using various
 
 5. **Add the workflow** (`.github/workflows/a5c.yml`):
    ```yaml
-   name: A5C Agent System
+   name: a5c Agent System
    on:
      pull_request:
        types: [opened, synchronize]
@@ -139,7 +133,7 @@ A flexible GitHub Action for automated agent-based code operations using various
        runs-on: ubuntu-latest
        steps:
          - uses: actions/checkout@v3
-         - name: Run A5C Agents
+         - name: Run a5c Agents
            uses: ./path/to/a5c-githubaction
            with:
              github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -148,7 +142,7 @@ A flexible GitHub Action for automated agent-based code operations using various
 
    **Using Remote Configuration and Agents:**
    ```yaml
-   name: A5C Agent System with Remote Config and Agents
+   name: a5c Agent System with Remote Config and Agents
    on:
      pull_request:
        types: [opened, synchronize]
@@ -167,7 +161,7 @@ A flexible GitHub Action for automated agent-based code operations using various
          metadata: read
        steps:
          - uses: actions/checkout@v3
-         - name: Run A5C Agents with Remote Config and Agents
+         - name: Run a5c Agents with Remote Config and Agents
            uses: ./path/to/a5c-githubaction
            with:
              github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -204,7 +198,7 @@ Configuration files can be loaded from remote repositories, including private re
 
 ```yaml
 # .github/workflows/a5c.yml
-- name: Run A5C with Remote Config
+- name: Run a5c with Remote Config
   uses: ./
   with:
     config_uri: "https://raw.githubusercontent.com/myorg/shared-config/main/a5c-config.yml"
@@ -267,7 +261,7 @@ Agents are configured using YAML frontmatter in `.agent.md` files:
 
 ### Agent Inheritance
 
-A5C supports agent inheritance, allowing you to create specialized agents that inherit from base agents. This enables code reuse and hierarchical agent organization.
+a5c supports agent inheritance, allowing you to create specialized agents that inherit from base agents. This enables code reuse and hierarchical agent organization.
 
 #### Basic Inheritance
 
@@ -543,6 +537,28 @@ Each agent specifies its CLI command as a complete template string using Handleb
 - `{{max_turns}}` - Maximum conversation turns
 - `{{verbose}}` - Verbose flag
 - `{{files}}` - Array of changed files
+
+### Template Inclusion
+
+The template engine supports including remote or local templates using the `include` helper:
+
+```handlebars
+{{include "path/to/template.md"}}
+{{include "https://raw.githubusercontent.com/user/repo/main/template.md" title="My Title"}}
+{{include "../path/to/local-template.md" data=someVariable}}
+```
+
+**Template Inclusion Features:**
+- **Remote Templates**: Include templates from GitHub or other web sources
+- **Local Templates**: Include templates from local file system
+- **Parameter Passing**: Pass custom variables to included templates
+- **Relative Paths**: Use relative paths for template resolution
+- **Context Inheritance**: Included templates inherit parent context
+- **Raw Inclusion**: Include content without processing using `rawInclude`
+- **Nested Includes**: Templates can include other templates
+- **Security**: Circular references prevention and depth limiting
+
+See the [template inclusion example](docs/examples/template-inclusion-example.md) for more details.
 
 **Example CLI Commands:**
 

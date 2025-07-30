@@ -1,4 +1,4 @@
-name: 'A5C Runner'
+name: 'a5c Runner'
 description: 'Run AI agents using gitops principles'
 author: 'a5c.ai'
 branding:
@@ -109,13 +109,196 @@ runs:
         node-version: '20'
     
     - name: Install dependencies
-      run: npm ci && npm install -g @anthropic-ai/claude-code
+      run: npm ci && npm install -g @anthropic-ai/claude-code @openai/codex
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
         NODE_ENV: production
+    - name: Authenticate with gh cli
+      run: echo ${{ inputs.github_token }} | GH_TOKEN= GITHUB_TOKEN= gh auth login --with-token
+      shell: bash
+      working-directory: ${{ github.action_path }}
     
-    - name: Run A5C Runner
+    - name: Setup Cloud CLI Tools
+      run: |
+        echo "Checking for cloud provider credentials..."
+        
+        # Check for Azure credentials
+        if [[ -n "$AZURE_APPLICATION_CLIENT_ID" && -n "$AZURE_APPLICATION_CLIENT_SECRET" && -n "$AZURE_TENANT_ID" ]]; then
+          echo "Azure credentials detected, installing Azure CLI..."
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          
+          echo "Logging into Azure..."
+          az login --service-principal \
+            --username "$AZURE_APPLICATION_CLIENT_ID" \
+            --password "$AZURE_APPLICATION_CLIENT_SECRET" \
+            --tenant "$AZURE_TENANT_ID"
+          echo "Azure CLI authentication successful"
+        else
+          echo "Azure credentials not found (AZURE_APPLICATION_CLIENT_ID, AZURE_APPLICATION_CLIENT_SECRET, AZURE_TENANT_ID)"
+        fi
+        
+        # Check for AWS credentials
+        if [[ -n "$AWS_ACCESS_KEY_ID" && -n "$AWS_SECRET_ACCESS_KEY" ]]; then
+          echo "AWS credentials detected, installing AWS CLI..."
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          sudo ./aws/install
+          rm -rf awscliv2.zip aws/
+          
+          echo "Configuring AWS CLI..."
+          aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+          aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+          if [[ -n "$AWS_DEFAULT_REGION" ]]; then
+            aws configure set default.region "$AWS_DEFAULT_REGION"
+          fi
+          if [[ -n "$AWS_SESSION_TOKEN" ]]; then
+            aws configure set aws_session_token "$AWS_SESSION_TOKEN"
+          fi
+          
+          echo "Testing AWS CLI authentication..."
+          aws sts get-caller-identity
+          echo "AWS CLI authentication successful"
+        else
+          echo "AWS credentials not found (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)"
+        fi
+        
+        # Check for Google Cloud credentials
+        if [[ -n "$GOOGLE_APPLICATION_CREDENTIALS" || -n "$GCP_SA_KEY" ]]; then
+          echo "Google Cloud credentials detected, installing Google Cloud CLI..."
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+          sudo apt-get update && sudo apt-get install -y google-cloud-cli
+          
+          if [[ -n "$GCP_SA_KEY" ]]; then
+            echo "Using GCP_SA_KEY for authentication..."
+            echo "$GCP_SA_KEY" | base64 -d > /tmp/gcp-key.json
+            gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+            rm /tmp/gcp-key.json
+          elif [[ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]]; then
+            echo "Using GOOGLE_APPLICATION_CREDENTIALS for authentication..."
+            gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
+          fi
+          
+          if [[ -n "$GCP_PROJECT_ID" ]]; then
+            gcloud config set project "$GCP_PROJECT_ID"
+          fi
+          
+          echo "Testing Google Cloud CLI authentication..."
+          gcloud auth list
+          echo "Google Cloud CLI authentication successful"
+        else
+          echo "Google Cloud credentials not found (GOOGLE_APPLICATION_CREDENTIALS or GCP_SA_KEY)"
+        fi
+        
+        echo "Cloud CLI setup completed"
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        AZURE_APPLICATION_CLIENT_ID: ${{ env.AZURE_APPLICATION_CLIENT_ID }}
+        AZURE_APPLICATION_CLIENT_SECRET: ${{ env.AZURE_APPLICATION_CLIENT_SECRET }}
+        AZURE_TENANT_ID: ${{ env.AZURE_TENANT_ID }}
+        AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ env.AWS_DEFAULT_REGION }}
+        AWS_SESSION_TOKEN: ${{ env.AWS_SESSION_TOKEN }}
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
+        GCP_SA_KEY: ${{ env.GCP_SA_KEY }}
+        GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
+    
+    - name: Check GitHub Issues and create PR if needed
+      run: |
+        # Check if issues are enabled
+        ISSUES_ENABLED=$(gh repo view --json hasIssuesEnabled --jq '.hasIssuesEnabled')
+        
+        if [ "$ISSUES_ENABLED" = "false" ]; then
+          echo "Issues are not enabled for this repository"
+          
+          # Get the default branch
+          DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
+          
+          # Create a dummy file to make a PR
+          echo "# Enable GitHub Issues Request" > enable-issues-request.md
+          echo "" >> enable-issues-request.md
+          echo "This repository does not have GitHub Issues enabled." >> enable-issues-request.md
+          echo "Please enable Issues in the repository settings to allow issue tracking and better collaboration." >> enable-issues-request.md
+          echo "" >> enable-issues-request.md
+          echo "To enable issues:" >> enable-issues-request.md
+          echo "1. Go to repository Settings" >> enable-issues-request.md
+          echo "2. Scroll down to the Features section" >> enable-issues-request.md
+          echo "3. Check the 'Issues' checkbox" >> enable-issues-request.md
+          echo "" >> enable-issues-request.md
+          echo "This file can be deleted once issues are enabled." >> enable-issues-request.md
+          
+          # Configure git
+          git config --global user.name "a5c Runner"
+          git config --global user.email "action@a5c.ai"
+          
+          # Create and switch to a new branch
+          BRANCH_NAME="enable-issues-request-$(date +%s)"
+          git checkout -b "$BRANCH_NAME"
+          
+          # Add and commit the file
+          git add enable-issues-request.md
+          git commit -m "Request: Enable GitHub Issues for this repository"
+          
+          # Push the branch
+          git push origin "$BRANCH_NAME"
+          
+          # Create pull request
+          gh pr create \
+            --title "Please Enable GitHub Issues" \
+            --body "This repository does not have GitHub Issues enabled. Issues are important for tracking bugs, feature requests, and facilitating collaboration. Please enable Issues in the repository settings. Once enabled, this PR can be closed and the branch deleted." \
+            --head "$BRANCH_NAME" \
+            --base "$DEFAULT_BRANCH"
+            
+          echo "Created pull request requesting to enable GitHub Issues"
+        else
+          echo "GitHub Issues are already enabled"
+        fi
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      
+    - name: Verify CLI Tool Configuration and create issue if needed
+      run: |
+        echo "Checking for CLI tool configuration..."
+        if [[ -n "$A5C_CLI_TOOL" ]]; then
+          echo "A5C_CLI_TOOL environment variable found: $A5C_CLI_TOOL"
+        else
+          echo "A5C_CLI_TOOL environment variable not set - will use default fallback logic"
+          
+          # Check if issues are enabled before creating one
+          ISSUES_ENABLED=$(gh repo view --json hasIssuesEnabled --jq '.hasIssuesEnabled')
+          
+          if [ "$ISSUES_ENABLED" = "true" ]; then
+            echo "Creating GitHub issue to request A5C_CLI_TOOL configuration..."
+            
+            # Check if issue with exact same title already exists and is open
+            ISSUE_TITLE="Configure A5C_CLI_TOOL Environment Variable for Enhanced AI Provider Support"
+            EXISTING_ISSUE=$(gh issue list --state open --json number,title | jq --arg title "$ISSUE_TITLE" '.[] | select(.title == $title) | .number' | head -n1)
+            
+            if [[ -z "$EXISTING_ISSUE" ]]; then
+              # Create the issue with a simple message
+              gh issue create \
+                --title "$ISSUE_TITLE" \
+                --label "a5c-config,enhancement" \
+                --body "Please configure the A5C_CLI_TOOL environment variable in repository Settings → Secrets and variables → Actions → Variables for enhanced AI provider support. This ensures consistent CLI command fallback behavior. See https://github.com/a5c-ai/action for documentation. This issue was automatically created by the a5c Runner action."
+              
+              echo "✅ Created GitHub issue requesting A5C_CLI_TOOL configuration"
+            else
+              echo "ℹ️ Issue with title '$ISSUE_TITLE' already exists and is open (Issue #$EXISTING_ISSUE)"
+            fi
+          else
+            echo "⚠️ Issues are disabled - cannot create issue for A5C_CLI_TOOL configuration request"
+            echo "💡 Consider enabling Issues in repository settings or manually configure A5C_CLI_TOOL"
+          fi
+        fi
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL }}
+        
+    - name: Run a5c Runner
       id: a5c-agent
       run: node index.js ${{ github.workspace }}
       shell: bash
@@ -128,3 +311,5 @@ runs:
         INPUT_CONFIG_URI: ${{ inputs.config_uri }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github_token }} 
         ACTIONS_RUNTIME_TOKEN: ${{ env.ACTIONS_RUNTIME_TOKEN }}
+        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL }}
+
