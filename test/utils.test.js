@@ -23,20 +23,64 @@ describe('User whitelist utils', () => {
   });
   
   describe('isOrganization', () => {
-    test('should return true for organization names', () => {
-      expect(isOrganization('acme')).toBe(true);
-      expect(isOrganization('microsoft')).toBe(true);
-      expect(isOrganization('a5c')).toBe(true);
+    test('should return true for organization accounts', async () => {
+      const mockOctokit = {
+        rest: {
+          users: {
+            getByUsername: jest.fn()
+              .mockResolvedValueOnce({ data: { type: 'Organization' } })
+              .mockResolvedValueOnce({ data: { type: 'Organization' } })
+              .mockResolvedValueOnce({ data: { type: 'Organization' } })
+          }
+        }
+      };
+      github.getOctokit.mockReturnValue(mockOctokit);
+
+      expect(await isOrganization('acme')).toBe(true);
+      expect(await isOrganization('microsoft')).toBe(true);
+      expect(await isOrganization('a5c')).toBe(true);
     });
     
-    test('should return false for user names with hyphens', () => {
-      expect(isOrganization('john-doe')).toBe(false);
-      expect(isOrganization('user-name')).toBe(false);
+    test('should return false for user accounts', async () => {
+      const mockOctokit = {
+        rest: {
+          users: {
+            getByUsername: jest.fn()
+              .mockResolvedValueOnce({ data: { type: 'User' } })
+              .mockResolvedValueOnce({ data: { type: 'User' } })
+          }
+        }
+      };
+      github.getOctokit.mockReturnValue(mockOctokit);
+
+      expect(await isOrganization('john-doe')).toBe(false);
+      expect(await isOrganization('user-name')).toBe(false);
     });
     
-    test('should return false for very short names', () => {
-      expect(isOrganization('a')).toBe(false);
-      expect(isOrganization('ab')).toBe(false);
+    test('should fallback to heuristic when no token available', async () => {
+      delete process.env.GITHUB_TOKEN;
+      delete process.env.INPUT_GITHUB_TOKEN;
+      
+      expect(await isOrganization('acme')).toBe(true);  // no hyphens, >2 chars
+      expect(await isOrganization('john-doe')).toBe(false);  // has hyphens
+      expect(await isOrganization('ab')).toBe(false);  // <=2 chars
+      
+      // Restore token for other tests
+      process.env.GITHUB_TOKEN = 'mock-token';
+    });
+    
+    test('should fallback to heuristic on API error', async () => {
+      const mockOctokit = {
+        rest: {
+          users: {
+            getByUsername: jest.fn().mockRejectedValue(new Error('API Error'))
+          }
+        }
+      };
+      github.getOctokit.mockReturnValue(mockOctokit);
+
+      expect(await isOrganization('acme')).toBe(true);  // fallback heuristic
+      expect(await isOrganization('john-doe')).toBe(false);  // fallback heuristic
     });
   });
   

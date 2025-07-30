@@ -323,49 +323,77 @@ async function getRepositoryTeamMembers(owner, repo) {
     
     const octokit = github.getOctokit(token);
     const members = [];
-    // For organizations, get team members and fallback to collaborators
+    
+    // Check if owner is an organization
     if (await isOrganization(owner)) {
       core.debug(`Fetching organization members for ${owner}`);
+      
+      // Try to get organization members (public members only by default)
       try {
         const { data: orgMembers } = await octokit.rest.orgs.listMembers({
           org: owner
         });
-        core.debug(`Organization members: ${JSON.stringify(orgMembers)}`);
+        core.debug(`Public organization members found: ${orgMembers.length}`);
         members.push(...orgMembers.map(member => member.login));
-        core.debug(`Organization members: ${JSON.stringify(members)}`);
         
-        // For user repositories, get collaborators
+        // Also try to get private members if token has permission
+        try {
+          const { data: privateMembers } = await octokit.rest.orgs.listMembers({
+            org: owner,
+            filter: 'all'  // This requires read:org scope
+          });
+          core.debug(`All organization members found: ${privateMembers.length}`);
+          // Add any private members not already in the list
+          const existingLogins = new Set(members);
+          for (const member of privateMembers) {
+            if (!existingLogins.has(member.login)) {
+              members.push(member.login);
+            }
+          }
+        } catch (privateError) {
+          core.debug(`Cannot access private org members (insufficient permissions): ${privateError.message}`);
+        }
+        
+      } catch (error) {
+        core.warning(`Error fetching organization members: ${error.message} (status: ${error.status})`);
+      }
+      
+      // For organizations, also check repository collaborators as fallback
+      try {
         const { data: collaborators } = await octokit.rest.repos.listCollaborators({
           owner,
           repo
         });
-        core.debug(`Collaborators: ${JSON.stringify(collaborators)}`);
-        members.push(...collaborators.map(collaborator => collaborator.login));
-        core.debug(`Members: ${JSON.stringify(members)}`);
-      } catch (error) {
-        if (error.status === 404) {
-          core.warning(`Organization not found or not accessible: ${owner}`);
-        } else {
-          core.warning(`Error fetching organization members: ${error.message}`);
+        core.debug(`Repository collaborators found: ${collaborators.length}`);
+        // Add collaborators not already in members list
+        const existingLogins = new Set(members);
+        for (const collaborator of collaborators) {
+          if (!existingLogins.has(collaborator.login)) {
+            members.push(collaborator.login);
+          }
         }
-        return [];
+      } catch (error) {
+        core.warning(`Error fetching repository collaborators: ${error.message} (status: ${error.status})`);
+      }
+      
+    } else {
+      // For user repositories, just get collaborators
+      core.debug(`Fetching collaborators for user repository ${owner}/${repo}`);
+      try {
+        const { data: collaborators } = await octokit.rest.repos.listCollaborators({
+          owner,
+          repo
+        });
+        members.push(...collaborators.map(collaborator => collaborator.login));
+        core.debug(`Repository collaborators found: ${collaborators.length}`);
+      } catch (error) {
+        core.warning(`Error fetching repository collaborators: ${error.message} (status: ${error.status})`);
       }
     }
     
-    // For user repositories, get collaborators
-    try {
-      const { data: collaborators } = await octokit.rest.repos.listCollaborators({
-        owner,
-        repo
-      });
-      members.push(...collaborators.map(collaborator => collaborator.login));
-      core.debug(`Collaborators: ${JSON.stringify(collaborators)}`);
-      core.debug(`Members: ${JSON.stringify(members)}`);
-      return members;
-    } catch (error) {
-      core.warning(`Error fetching repository collaborators: ${error.message}`);
-      return [];
-    }
+    core.debug(`Final team members list: ${JSON.stringify(members)}`);
+    return [...new Set(members)]; // Remove any duplicates
+    
   } catch (error) {
     core.warning(`Error fetching team members: ${error.message}`);
     return [];
