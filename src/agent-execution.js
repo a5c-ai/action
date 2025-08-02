@@ -614,7 +614,8 @@ async function executeCommand(commandString, options = {}) {
     
     aprocess.stdout.on('data', (data) => {
       // log the data to the console
-      core.debug(data.toString());
+      // core.debug(data.toString());
+      core.info(data.toString());
       stdout += data.toString();
     });
     
