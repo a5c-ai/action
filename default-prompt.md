@@ -285,3 +285,5 @@ By: [your name] (agent+[your name or id]@a5c.ai) - https://a5c.ai/agents/[your n
 For git config, use the following:
 git config user.name: [your name]
 git config user.email: agent+[your name or id]@a5c.ai
+
+if for any reason you are not allowed to open Pull Requests, you should not open them. and open an issue that asks to enable the permissions for the github actions in the repository settings (or org settings if this is an org level repo)
