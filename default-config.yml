@@ -24,7 +24,7 @@ cli_agents:
   
   codex:
     cli_command: "codex exec --dangerously-bypass-approvals-and-sandbox -c model={{model}} --output-last-message /tmp/agent-output.md"
-    model: "o4-mini"
+    model: "codex-mini-latest"
     inject_prompt_to_stdin: true
     inject_envs_to_prompt: false
     description: "OpenAI models via codex CLI"
