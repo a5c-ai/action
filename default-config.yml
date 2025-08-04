@@ -21,6 +21,7 @@ cli_agents:
   claude:
     cli_command: "cat {{prompt_path}} | claude --mcp-config {{mcp_config}} -p 'fulfill the request' --output-format stream-json --allowedTools Bash,Read,Glob,Grep,Write,MultiEdit,Edit,NotebookRead,NotebookEdit,WebFetch,TodoRead,TodoWrite,WebSearch,Task,Agent,mcp__github,mcp__agent_reporter --dangerously-skip-permissions --verbose --model {{model}}"
     description: "Claude AI via claude-code CLI"
+    model: "claude-sonnet-4-20250514"
   
   codex:
     cli_command: "codex exec --dangerously-bypass-approvals-and-sandbox -c model={{model}} --output-last-message /tmp/agent-output.md"
