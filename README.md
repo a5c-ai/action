@@ -797,6 +797,22 @@ npm test
 npm run lint
 ```
 
+## Outputs
+
+This action exposes the following outputs, which can be used in downstream workflow steps:
+
+| Output               | Description                                              |
+|----------------------|----------------------------------------------------------|
+| `success`            | Whether all agents completed successfully                 |
+| `agents_run`         | Total number of agents executed                           |
+| `agents_successful`  | Number of agents that completed successfully              |
+| `agents_failed`      | Number of agents that failed                              |
+| `agent_results`      | JSON array of results for each agent (including cost)     |
+| `total_cost`         | Total cost incurred by all agent runs (in USD)            |
+| `agent_costs`        | JSON array of agent costs (`agent_name` and `cost` in USD) |
+| `summary`            | Human-readable summary of the execution                   |
+| `output_directory`   | Directory path where agent output artifacts are stored    |
+
 ### Contributing
 
 1. Fork the repository
