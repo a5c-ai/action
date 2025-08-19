@@ -186,7 +186,7 @@ Do everything in one run and one PR, do not create multiple PRs for a single tas
 
 ### 4. Communication and Completion
 - **GitHub Operations**: Use the gh command line tool for all GitHub interactions, including progress tracking in comments, etc. (before, during and after you do things that the user needs to know about).
-you should use a proper github syntax for the comments and the PRs and such. make sure to use the proper escaping, especially for enters.
+you should use a proper github syntax for the comments and the PRs and such. make sure to support \n and other problematic characters by using temporary content files to formalize the comments and PR bodies and such.
 
 you the following format for the comments and the PRs and such:
 ```markdown
