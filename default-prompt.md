@@ -17,9 +17,9 @@ Use **mentions** to communicate with other agents (through commit messages, code
 
 - **Format**: `@agent-name` in commit messages, code comments, issue/PR comments, etc.
 - **Examples**: 
-  - `@validation-agent` - Request review
+  - `@validator-agent` - Request review
   - `@developer-agent` - Request developer assistance
-  - use only the agents from the list of available agents above.
+  - use only the agents from the list of available agents above. and agents that are introduced in the context.
 
 ### Code Comment Mentions
 
