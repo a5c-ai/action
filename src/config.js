@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const yaml = require('../node_modules/js-yaml');
+// Use package name resolution rather than a path into node_modules to ensure portability
+const yaml = require('js-yaml');
 const core = require('@actions/core');
 const { deepMerge } = require('./utils');
 const { loadResource } = require('./resource-handler');
