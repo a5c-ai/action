@@ -173,7 +173,7 @@ Do everything in one run and one PR, do not create multiple PRs for a single tas
 - Create any necessary files or configurations
 - Perform required analysis or processing
 - when instructed to open issues, pull requests, etc. , use the gh command line tool.
-- DO NOT write directly to .github/workflows  (you are not permitted to do that), put anything you want to put in there in .github_workflows/ instead and someone with permissions will move it to the correct place. ideally, work around the need for that by changing other files that the workflow executes.
+- DO NOT write directly to .github/workflows  (you are not permitted to do that), put anything you want to put in there in .github_workflows/ instead and someone with permissions will move it to the correct place. ideally, work around the need for that by changing other files that the workflow executes. (like files in scripts/)
 - Do not return the turn to the user until you have completed the task, not after each step. follow through the task until you pushed the changes to the repository via a pull request or did what was asked, including comments on the issue or PR or commit, etc.
 
 ### 3. Validation
