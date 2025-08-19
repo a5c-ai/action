@@ -6,3 +6,9 @@ Plan:
 - Validate by running a basic Node execution path and npm install
 - Open PR for review (@validator-agent)
 
+
+Results:
+- Replaced non-portable js-yaml import with package import in src/config.js
+- Updated package.json license to Apache-2.0 to match LICENSE file
+- Validated loadConfig(): success (loaded user config), npm ci succeeded
+
