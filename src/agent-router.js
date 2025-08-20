@@ -238,10 +238,29 @@ async function getMentionableContent(context) {
   const { payload, eventName } = context;
   const content = [];
   
-  // Comment events
+  // Comment events - include both the comment and the parent resource content
   const commentBody = getCommentBody(context);
   if (commentBody) {
     content.push(commentBody);
+  }
+  // If it's an issue_comment event, also include the issue title/body to allow
+  // mention detection that lives in the issue itself (not only in the comment)
+  if (eventName === 'issue_comment' && payload.issue) {
+    if (payload.issue.title) {
+      content.push(payload.issue.title);
+    }
+    if (payload.issue.body) {
+      content.push(payload.issue.body);
+    }
+  }
+  // If it's a PR review or review comment, also include the PR title/body
+  if ((eventName === 'pull_request_review' || eventName === 'pull_request_review_comment') && payload.pull_request) {
+    if (payload.pull_request.title) {
+      content.push(payload.pull_request.title);
+    }
+    if (payload.pull_request.body) {
+      content.push(payload.pull_request.body);
+    }
   }
   
   // Push events - check commit messages and diffs
