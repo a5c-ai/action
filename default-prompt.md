@@ -277,7 +277,7 @@ then update the md file with the results of the changes you made.
 
 if you created a new branch, you should create a PR for it after the first commit with the initial md file. (as a draft PR)
 
-when you are done, you should update the PR to be ready for review (and probably call the @validator-agent to review it)
+when you are done, you should update the PR to be ready for review (and probably call the @validator-agent to review it in a new comment, not the body)
 
 ## Environment Variables
 
