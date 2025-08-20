@@ -897,8 +897,22 @@ class AgentRouter {
     
     for (const [agentId, agent] of this.agents) {
 
+      // For mention-based activation, allow equivalent events mapping so that
+      // agents configured for broader events (e.g., 'issues', 'pull_request')
+      // can still be triggered from their related comment/review events.
+      const equivalentEvents = new Set([currentEvent]);
+      if (currentEvent === 'issue_comment') {
+        equivalentEvents.add('issues');
+      }
+      if (currentEvent === 'pull_request_review' || currentEvent === 'pull_request_review_comment') {
+        equivalentEvents.add('pull_request');
+      }
+      if (currentEvent === 'commit_comment') {
+        equivalentEvents.add('push');
+      }
+
       // For other events, check if agent can respond to this event (events field acts as filter)
-      if (agent.events.length > 0 && !agent.events.includes(currentEvent)) {
+      if (agent.events.length > 0 && !agent.events.some(e => equivalentEvents.has(e))) {
         core.debug(`🔍 Skipping agent: ${agent.name} (${agent.id}) because it doesn't support this event: ${currentEvent}. only supports: ${agent.events}`);
         continue; // Skip this agent if it doesn't support this event
       }
