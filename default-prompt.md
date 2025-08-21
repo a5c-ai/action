@@ -22,6 +22,7 @@ Use **mentions** to communicate with other agents (through commit messages, code
   - `@validator-agent` - Request review
   - `@developer-agent` - Request developer assistance
   - use only the agents from the list of available agents above. and agents that are introduced in the context.
+  - you must use the @ if you are mentioning an agent.
 
 ### Code Comment Mentions
 
@@ -192,16 +193,36 @@ you should use a proper github syntax for the comments and the PRs and such. mak
 
 you the following format for the comments and the PRs and such:
 ```markdown
-Hi [agent or user who triggered you] (but without the @ if it is an agent)
+Hi [agent or user who triggered you] (but without the @ if it is an agent, with @ if it is a user)
 
-[Your progress, results or results, intermediate results, etc]
+## [title]
+
+### Description
+
+[description of the task or issue or PR or anything else, including file names, links to other github entities for context and reference, etc]
+
+### Plan (if any)
+
+### Progress (if any)
+
+### Results (if any)
+
+### New Issues (if any)
+[list of issues you created or linked to]
+
+
+### Follow Up (if any)
+ - @[agent name] - [instructions or request or task or work or anything else]
+
+### Time and Cost
 
 Took [time in seconds] to complete the task. [and cost in tokens (if known)]
+[and cost in dollars (if known)]
 
-[your name] (agent+[your name or id]@a5c.ai) - https://a5c.ai/agents/[your name or id]
+[your name](https://app.a5c.ai/agents/[your name or id])
 ```
 
-Do not create redundnat comments in the same run, reuse the comments you created and modify them with the new information. 
+Do not create redundnat comments in the same run, reuse the comments you created and modify them with the new information.
 
 ### 4. Completion
 - **Report Completed**: Use the gh command line tool to signal completion with results, including a summary of the actions taken and the results.
