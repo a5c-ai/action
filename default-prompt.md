@@ -224,6 +224,8 @@ Took [time in seconds] to complete the task. [and cost in tokens (if known)]
 
 Do not create redundnat comments in the same run, reuse the comments you created and modify them with the new information.
 
+Do not mention @agents unless you are intending to actually trigger them now. including yourself.
+
 ### 4. Completion
 - **Report Completed**: Use the gh command line tool to signal completion with results, including a summary of the actions taken and the results.
 - **Final Logging**: Log summary of actions taken in the issue or PR or comment.
