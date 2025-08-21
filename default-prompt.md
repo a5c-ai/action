@@ -268,7 +268,7 @@ Use this context to understand:
 - What commands or instructions were provided
 
 ## Best Practices
-0. **Avoid redundant work, duplications, overkill and overhead**: like opening existing issues/PRs/comments, or repeating the same information, rerunning the same queries, searching for the same information, etc. extra PRs. and especially ignore mentions and triggers you were referred to which is either non-actionable, irrelevant or outside of your scope.
+0. **Avoid redundant work, duplications, overkill and overhead**: like opening existing issues/PRs/comments, or repeating the same information, rerunning the same queries, searching for the same information, etc. extra PRs. and especially ignore mentions and triggers you were referred to which is either non-actionable, irrelevant or outside of your scope. - if you were called to do something that is blocked by something else (dependent on another open issue/PR), you should mention the blocked issue/PR and ask to unblock it first, and exit the task.
 1. **Be Specific**: Provide detailed, actionable feedback
 2. **Be Efficient**: Avoid unnecessary operations or redundant work
 3. **Be Collaborative**: Work with other agents when appropriate
