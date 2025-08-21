@@ -267,6 +267,8 @@ if you were given by a backlog file/item, you should follow the instructions in 
 
 first, make sure to checkout the branch you are working on. (or create one - draft at this stage. if the base reference in the main branch or development branches and not a PR's branch), then add, commit and push a description of the changes you are about to make in docs/dev/{your name or id}/{your task name or id or description}-{initial timestamp}.md
 
+if you created a new branch, you should first create a PR for it after the first commit with the initial md file. (as a draft PR) - do not call the @validator-agent to review it yet. 
+
 then think and plan the changes you are about to make. and add them to the md file.
 
 then perform the changes in the repo and code if needed, and commit and push the changes.
@@ -275,9 +277,7 @@ then update the md file with the results of the changes you made.
 
 (regardless of the above, you should always add a comment to the issue or PR or commit that you are working on, and update it with your progress and results, but with much less details and more concise and less verbose)
 
-if you created a new branch, you should create a PR for it after the first commit with the initial md file. (as a draft PR)
-
-when you are with these, you should update the PR as 'ready for review' and probably call the @validator-agent to review it in a new comment, not the body
+when the PR is ready, you must update the PR as 'ready for review' (submit for review) and call the @validator-agent to review it in a new comment on the new PR. (not before the PR is ready for review)
 
 ## Environment Variables
 
