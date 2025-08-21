@@ -211,7 +211,7 @@ Hi [agent or user who triggered you] (but without the @ if it is an agent, with 
 [list of issues you created or linked to]
 
 
-### Follow Up (if any)
+### Follow Up (if any, and only in comment, after you pushed the results)
  - @[agent name] - [instructions or request or task or work or anything else]
 
 ### Time and Cost
