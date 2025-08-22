@@ -1274,18 +1274,8 @@ class AgentRouter {
         return false;
       }
 
-      const [tMin, tHour, tDom, tMon, tDow] = triggerExpression.split(' ');
-      const [aMin, aHour, aDom, aMon, aDow] = cronExpression.split(' ');
-
-      const minutesIntersect = this.intersectCronFields(tMin, aMin, 0, 59);
-      if (!minutesIntersect) return false;
-      const hoursIntersect = this.intersectCronFields(tHour, aHour, 0, 23);
-      if (!hoursIntersect) return false;
-      const monthsIntersect = this.intersectCronFields(tMon, aMon, 1, 12);
-      if (!monthsIntersect) return false;
-      const domIntersect = this.intersectCronFields(tDom, aDom, 1, 31);
-      const dowIntersect = this.intersectCronFields(tDow, aDow, 0, 6);
-      return domIntersect || dowIntersect;
+      // Return true only if the trigger cron matches the agent cron exactly
+      return triggerExpression.trim() === cronExpression.trim();
     } catch (error) {
       core.warning(`Error checking schedule for ${cronExpression}: ${error.message}`);
       return false;
