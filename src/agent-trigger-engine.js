@@ -876,7 +876,7 @@ class AgentRouter {
     // Only check schedule for schedule events
     if (context.eventName !== 'schedule') return triggers;
     
-    if (this.isScheduledNow(agent.schedule)) {
+    if (this.isScheduledNow(agent.schedule, context)) {
       triggers.push({
         type: 'schedule',
         reason: `Schedule: ${agent.schedule}`,
@@ -1262,22 +1262,30 @@ class AgentRouter {
   }
 
   // Check if agent should be triggered by schedule
-  isScheduledNow(cronExpression) {
+  isScheduledNow(cronExpression, context) {
     try {
       if (!validateCronExpression(cronExpression)) {
         return false;
       }
       
-      // For GitHub Actions, we check if the current time matches the schedule
-      const now = new Date();
-      const [minute, hour, day, month, weekday] = cronExpression.split(' ');
-      
-      // Check if current time matches the cron expression
-      return this.matchesCronField(now.getMinutes(), minute) &&
-             this.matchesCronField(now.getHours(), hour) &&
-             this.matchesCronField(now.getDate(), day) &&
-             this.matchesCronField(now.getMonth() + 1, month) &&
-             this.matchesCronField(now.getDay(), weekday);
+      // Compare trigger cron from event with agent cron for intersection
+      const triggerExpression = context && context.payload ? context.payload.schedule : null;
+      if (!triggerExpression || !validateCronExpression(triggerExpression)) {
+        return false;
+      }
+
+      const [tMin, tHour, tDom, tMon, tDow] = triggerExpression.split(' ');
+      const [aMin, aHour, aDom, aMon, aDow] = cronExpression.split(' ');
+
+      const minutesIntersect = this.intersectCronFields(tMin, aMin, 0, 59);
+      if (!minutesIntersect) return false;
+      const hoursIntersect = this.intersectCronFields(tHour, aHour, 0, 23);
+      if (!hoursIntersect) return false;
+      const monthsIntersect = this.intersectCronFields(tMon, aMon, 1, 12);
+      if (!monthsIntersect) return false;
+      const domIntersect = this.intersectCronFields(tDom, aDom, 1, 31);
+      const dowIntersect = this.intersectCronFields(tDow, aDow, 0, 6);
+      return domIntersect || dowIntersect;
     } catch (error) {
       core.warning(`Error checking schedule for ${cronExpression}: ${error.message}`);
       return false;
@@ -1285,30 +1293,124 @@ class AgentRouter {
   }
 
   // Check if value matches cron field
-  matchesCronField(value, field) {
+  matchesCronField(value, field, min, max) {
     if (field === '*') return true;
+    
+    // Handle lists (e.g., "1,3,5" or mixed like "1,5-10/2,20")
+    if (field.includes(',')) {
+      const parts = field.split(',');
+      return parts.some(part => this.matchesCronField(value, part, min, max));
+    }
+    
+    // Handle step values (e.g., "*/5", "1-10/2", or "5/10")
+    if (field.includes('/')) {
+      const [left, stepStr] = field.split('/');
+      const step = Number(stepStr);
+      if (isNaN(step) || step <= 0) return false;
+      
+      if (left === '*') {
+        // Start from the field's minimum for wildcard steps
+        return ((value - min) % step) === 0;
+      }
+      
+      if (left.includes('-')) {
+        const [startStr, endStr] = left.split('-');
+        const start = Number(startStr);
+        const end = Number(endStr);
+        if (isNaN(start) || isNaN(end)) return false;
+        if (value < start || value > end) return false;
+        return ((value - start) % step) === 0;
+      }
+      
+      // Explicit start with implicit end to max
+      const start = Number(left);
+      if (isNaN(start)) return false;
+      if (value < start || value > max) return false;
+      return ((value - start) % step) === 0;
+    }
     
     // Handle ranges (e.g., "1-5")
     if (field.includes('-')) {
       const [start, end] = field.split('-').map(Number);
+      if (isNaN(start) || isNaN(end)) return false;
       return value >= start && value <= end;
     }
     
-    // Handle lists (e.g., "1,3,5")
-    if (field.includes(',')) {
-      const values = field.split(',').map(Number);
-      return values.includes(value);
-    }
-    
-    // Handle step values (e.g., "*/5")
-    if (field.includes('/')) {
-      const [range, step] = field.split('/');
-      const stepValue = Number(step);
-      return range === '*' ? value % stepValue === 0 : false;
-    }
-    
     // Exact match
-    return value === Number(field);
+    const exact = Number(field);
+    if (isNaN(exact)) return false;
+    return value === exact;
+  }
+
+  // Determine whether two cron fields have any overlapping values
+  intersectCronFields(fieldA, fieldB, min, max) {
+    const setA = this.expandCronField(fieldA, min, max);
+    const setB = this.expandCronField(fieldB, min, max);
+    for (const v of setA) {
+      if (setB.has(v)) return true;
+    }
+    return false;
+  }
+
+  // Expand a single cron field into its set of allowed numeric values
+  expandCronField(field, min, max) {
+    const result = new Set();
+    if (field === '*') {
+      for (let v = min; v <= max; v++) result.add(v);
+      return result;
+    }
+    // Lists
+    if (field.includes(',')) {
+      for (const part of field.split(',')) {
+        for (const v of this.expandCronField(part, min, max)) result.add(v);
+      }
+      return result;
+    }
+    // Steps
+    if (field.includes('/')) {
+      const [left, stepStr] = field.split('/');
+      const step = Number(stepStr);
+      if (!isNaN(step) && step > 0) {
+        if (left === '*') {
+          for (let v = min; v <= max; v += step) result.add(v);
+          return result;
+        }
+        if (left.includes('-')) {
+          const [startStr, endStr] = left.split('-');
+          const start = Number(startStr);
+          const end = Number(endStr);
+          if (!isNaN(start) && !isNaN(end)) {
+            for (let v = start; v <= end; v += step) {
+              if (v >= min && v <= max) result.add(v);
+            }
+          }
+          return result;
+        }
+        const start = Number(left);
+        if (!isNaN(start)) {
+          for (let v = start; v <= max; v += step) {
+            if (v >= min) result.add(v);
+          }
+        }
+      }
+      return result;
+    }
+    // Range
+    if (field.includes('-')) {
+      const [startStr, endStr] = field.split('-');
+      const start = Number(startStr);
+      const end = Number(endStr);
+      if (!isNaN(start) && !isNaN(end)) {
+        for (let v = start; v <= end; v++) {
+          if (v >= min && v <= max) result.add(v);
+        }
+      }
+      return result;
+    }
+    // Exact
+    const exact = Number(field);
+    if (!isNaN(exact) && exact >= min && exact <= max) result.add(exact);
+    return result;
   }
 
   // Track API usage metrics for monitoring and debugging
