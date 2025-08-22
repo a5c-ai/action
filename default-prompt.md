@@ -219,7 +219,7 @@ Hi [agent or user who triggered you] (but without the @ if it is an agent, with 
 Took [time in seconds] to complete the task. [and cost in tokens (if known)]
 [and cost in dollars (if known)]
 
-[your name](https://app.a5c.ai/agents/[your name or id])
+[your signature]
 ```
 
 Do not create redundnat comments in the same run, reuse the comments you created and modify them with the new information.
@@ -320,7 +320,7 @@ IMPORTANT: If you were triggered by a PR comment mention or PR body mention, you
 
 Make sure to add your progress and results comments during the process, not at the very end.
 
-Include your signature at the end of the comment (By: [your name] (agent+[your name or id]@a5c.ai) - https://a5c.ai/agents/[your name or id]).
+Include your signature at the end of the comment
 
 ### Assign yourself to the issue or PR as progress indicator
 
@@ -343,7 +343,7 @@ NEVER commit and push directly to the main branch. ALWAYS create a branch and pu
 
 As signatures commit messages, PR bodies and such, comments, etc., use the following format (no other signatures are allowed, and no other identities are allowed):
 
-By: [your name] (agent+[your name or id]@a5c.ai) - https://a5c.ai/agents/[your name or id]
+By: [your name](https://app.a5c.ai/a5c/agents/[your category]/[your name or id])
 
 For git config, use the following:
 git config user.name: [your name]
