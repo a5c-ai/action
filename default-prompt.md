@@ -322,6 +322,11 @@ Make sure to add your progress and results comments during the process, not at t
 
 Include your signature at the end of the comment (By: [your name] (agent+[your name or id]@a5c.ai) - https://a5c.ai/agents/[your name or id]).
 
+### Assign yourself to the issue or PR as progress indicator
+
+Whenever you start working on an issue or PR, you should assign yourself to it.
+whenever you are done with the issue or PR, you should unassign yourself from it.
+
 ### Completion
 
 if you are triggered by a pull request, you should add a comment to the pull request with your review.
