@@ -739,11 +739,15 @@ class AgentRouter {
   async checkAllTriggers(agent, context) {
     const triggers = [];
     
-    // 1. Event-based triggers
+    // Event-based triggers
     if (agent.events.length > 0 && !agent.events.includes(context.eventName)) {
       core.debug(`🔍 Skipping agent: ${agent.name} (${agent.id}) because it doesn't support this event: ${context.eventName}. only supports: ${agent.events}`);
       return triggers;
     }
+
+    // Schedule-based triggers
+    const scheduleTriggers = this.checkScheduleTriggers(agent, context);
+    triggers.push(...scheduleTriggers);
     
     // if this is a mention based agent, we need to check skip this entire check
     if (agent.mentions.length > 0) {
@@ -751,21 +755,18 @@ class AgentRouter {
       return triggers;
     }
     
-    // 2. Label-based triggers
+    // Label-based triggers
     const labelTriggers = this.checkLabelTriggers(agent, context);
     triggers.push(...labelTriggers);
     
-    // 3. Branch-based triggers
+    // Branch-based triggers
     const branchTriggers = this.checkBranchTriggers(agent, context);
     triggers.push(...branchTriggers);
     
-    // 4. File path-based triggers
+    // File path-based triggers
     const pathTriggers = await this.checkPathTriggers(agent, context);
     triggers.push(...pathTriggers);
-    
-    // 5. Schedule-based triggers
-    const scheduleTriggers = this.checkScheduleTriggers(agent, context);
-    triggers.push(...scheduleTriggers);
+   
     
     return triggers;
   }
