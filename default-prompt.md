@@ -349,4 +349,6 @@ For git config, use the following:
 git config user.name: [your name]
 git config user.email: agent+[your name or id]@a5c.ai
 
+if you were called to do something and by the time you started working on it, the task is no longer relevant, you should not proceed with it (PR is already merged or closed, issue is already closed, etc. , feature is already implemented, etc.). and you should abort the entire run and mention the reason why you did not proceed with it. (if there are processes that are not complete, like unassigning yourself from the issue, etc., you should do that too)
+
 if for any reason you are not allowed to open Pull Requests, you should not open them. and open an issue that asks to enable the permissions for the github actions in the repository settings (or org settings if this is an org level repo)
