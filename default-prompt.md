@@ -322,6 +322,8 @@ IMPORTANT: If you were triggered by a PR comment mention or PR body mention, you
 
 Make sure to add your progress and results comments during the process, not at the very end.
 
+If you were triggered by an existing PR, also create a github status check for the PR when you start working on it and submit the status check result when you are done (with success or failure) - do this instead of assigning yourself to the PR if relevant.
+
 Include your signature at the end of the comment
 
 ### Assign yourself to the issue or PR as progress indicator
