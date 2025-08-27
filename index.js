@@ -9,6 +9,7 @@ const { loadConfig } = require('./src/config');
 const { executeMainAgent } = require('./src/agent-executor');
 const { handleMentionBasedActivation, handleEventBasedActivation, getMentionableContent } = require('./src/agent-router');
 const { initializeTemplateHelpers } = require('./src/template-handler');
+const { ValidatorReporter } = require('./src/validator-reporter');
 
 const logoAscii = fs.readFileSync(path.join(__dirname, 'logo-ascii.txt'), 'utf8');
 // Initialize Handlebars helpers
@@ -57,6 +58,10 @@ async function main() {
       core.info('🏃 Running in DRY RUN mode - no CLI commands will be executed');
     }
     
+    // Initialize validator reporter (Checks/Statuses/Comments routing)
+    const reporter = new ValidatorReporter();
+    await reporter.start();
+
     // New unified approach: always check mentions first, then fall back to event-based
     const eventName = github.context.eventName;
     
@@ -64,8 +69,18 @@ async function main() {
     await handleMentionBasedActivation(config, dryRun);
     
     await handleEventBasedActivation(config, dryRun);
+
+    // Report success if we reach here
+    await reporter.finish(true);
     
   } catch (error) {
+    try {
+      const reporter = new ValidatorReporter();
+      await reporter.start();
+      await reporter.finish(false, undefined, error?.message);
+    } catch (e) {
+      // ignore reporter failure
+    }
     core.setFailed(error.message);
   }
 }
