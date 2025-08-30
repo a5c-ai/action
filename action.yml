@@ -211,58 +211,58 @@ runs:
         GCP_SA_KEY: ${{ env.GCP_SA_KEY }}
         GCP_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
     
-    - name: Check GitHub Issues and create PR if needed
-      run: |
-        # Check if issues are enabled
-        ISSUES_ENABLED=$(gh repo view --json hasIssuesEnabled --jq '.hasIssuesEnabled')
+    # - name: Check GitHub Issues and create PR if needed
+    #   run: |
+    #     # Check if issues are enabled
+    #     ISSUES_ENABLED=$(gh repo view --json hasIssuesEnabled --jq '.hasIssuesEnabled')
         
-        if [ "$ISSUES_ENABLED" = "false" ]; then
-          echo "Issues are not enabled for this repository"
+    #     if [ "$ISSUES_ENABLED" = "false" ]; then
+    #       echo "Issues are not enabled for this repository"
           
-          # Get the default branch
-          DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
+    #       # Get the default branch
+    #       DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
           
-          # Create a dummy file to make a PR
-          echo "# Enable GitHub Issues Request" > enable-issues-request.md
-          echo "" >> enable-issues-request.md
-          echo "This repository does not have GitHub Issues enabled." >> enable-issues-request.md
-          echo "Please enable Issues in the repository settings to allow issue tracking and better collaboration." >> enable-issues-request.md
-          echo "" >> enable-issues-request.md
-          echo "To enable issues:" >> enable-issues-request.md
-          echo "1. Go to repository Settings" >> enable-issues-request.md
-          echo "2. Scroll down to the Features section" >> enable-issues-request.md
-          echo "3. Check the 'Issues' checkbox" >> enable-issues-request.md
-          echo "" >> enable-issues-request.md
-          echo "This file can be deleted once issues are enabled." >> enable-issues-request.md
+    #       # Create a dummy file to make a PR
+    #       echo "# Enable GitHub Issues Request" > enable-issues-request.md
+    #       echo "" >> enable-issues-request.md
+    #       echo "This repository does not have GitHub Issues enabled." >> enable-issues-request.md
+    #       echo "Please enable Issues in the repository settings to allow issue tracking and better collaboration." >> enable-issues-request.md
+    #       echo "" >> enable-issues-request.md
+    #       echo "To enable issues:" >> enable-issues-request.md
+    #       echo "1. Go to repository Settings" >> enable-issues-request.md
+    #       echo "2. Scroll down to the Features section" >> enable-issues-request.md
+    #       echo "3. Check the 'Issues' checkbox" >> enable-issues-request.md
+    #       echo "" >> enable-issues-request.md
+    #       echo "This file can be deleted once issues are enabled." >> enable-issues-request.md
           
-          # Configure git
-          git config --global user.name "a5c Runner"
-          git config --global user.email "action@a5c.ai"
+    #       # Configure git
+    #       git config --global user.name "a5c Runner"
+    #       git config --global user.email "action@a5c.ai"
           
-          # Create and switch to a new branch
-          BRANCH_NAME="enable-issues-request-$(date +%s)"
-          git checkout -b "$BRANCH_NAME"
+    #       # Create and switch to a new branch
+    #       BRANCH_NAME="enable-issues-request-$(date +%s)"
+    #       git checkout -b "$BRANCH_NAME"
           
-          # Add and commit the file
-          git add enable-issues-request.md
-          git commit -m "Request: Enable GitHub Issues for this repository"
+    #       # Add and commit the file
+    #       git add enable-issues-request.md
+    #       git commit -m "Request: Enable GitHub Issues for this repository"
           
-          # Push the branch
-          git push origin "$BRANCH_NAME"
+    #       # Push the branch
+    #       git push origin "$BRANCH_NAME"
           
-          # Create pull request
-          gh pr create \
-            --title "Please Enable GitHub Issues" \
-            --body "This repository does not have GitHub Issues enabled. Issues are important for tracking bugs, feature requests, and facilitating collaboration. Please enable Issues in the repository settings. Once enabled, this PR can be closed and the branch deleted." \
-            --head "$BRANCH_NAME" \
-            --base "$DEFAULT_BRANCH"
+    #       # Create pull request
+    #       gh pr create \
+    #         --title "Please Enable GitHub Issues" \
+    #         --body "This repository does not have GitHub Issues enabled. Issues are important for tracking bugs, feature requests, and facilitating collaboration. Please enable Issues in the repository settings. Once enabled, this PR can be closed and the branch deleted." \
+    #         --head "$BRANCH_NAME" \
+    #         --base "$DEFAULT_BRANCH"
             
-          echo "Created pull request requesting to enable GitHub Issues"
-        else
-          echo "GitHub Issues are already enabled"
-        fi
-      shell: bash
-      working-directory: ${{ github.workspace }}
+    #       echo "Created pull request requesting to enable GitHub Issues"
+    #     else
+    #       echo "GitHub Issues are already enabled"
+    #     fi
+    #   shell: bash
+    #   working-directory: ${{ github.workspace }}
       
     - name: Verify CLI Tool Configuration and create issue if needed
       run: |
