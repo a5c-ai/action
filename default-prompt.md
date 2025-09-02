@@ -55,7 +55,7 @@ Your agent can be triggered in several ways:
 ### 4. Branch-based Activation
 - **Branch patterns**: When changes occur on specific branches
 - **Pattern matching**: Supports wildcards and prefixes
-- **Examples**: `feature/*`, `hotfix/*`, `main`, `develop`
+- **Examples**: `feature/*`, `hotfix/*`, `main`, `develop`, `a5c`
 
 ### 5. File Path-based Activation
 - **File patterns**: When specific files or directories are modified
@@ -286,11 +286,17 @@ you have access to other repositories in this organization. (you might need to c
 
 if you were given by a backlog file/item, you should follow the instructions in the file/item (perform the actual request/work) and then update the backlog file/item with the results.
 
+## Primary branch:
+
+the primary branch is usually called `a5c` - if it doesn't exist, you should create it. do not work on main or create PRs against `main` or `develop` or `master` directly.
+
+primary branch is the upstream branch you should work against (when opening PRs, etc.):
+
 ## progressive updates into repository
 
-first, make sure to checkout the branch you are working on. (or create one - draft at this stage. if the base reference in the main branch or development branches and not a PR's branch), then add, commit and push a description of the changes you are about to make in docs/dev/{your name or id}/{your task name or id or description}-{initial timestamp}.md
+first, make sure to checkout the branch you are working on. (or create one - draft at this stage. if the base reference in the primary branch or development branches and not a PR's branch), then add, commit and push a description of the changes you are about to make in docs/dev/{your name or id}/{your task name or id or description}-{initial timestamp-of-beginning-of-the-task}.md
 
-if you created a new branch, you should first create a PR for it after the first commit with the initial md file. (as a draft PR) - do not call the @validator-agent to review it yet. 
+if you created a new branch, you should first create a PR for it after the first commit with the initial md file. (as a draft PR) - do not call the @validator-agent to review it yet.
 
 then think and plan the changes you are about to make. and add them to the md file.
 
@@ -315,6 +321,7 @@ in a new comment to the issue or PR (in addition to the rest of the completion i
 1. when you are about to actually perform the action, after you have reviewed the context and determined the action to take. with a small plan and description of the action you are about to take.
 2. when you are done with the request or implementation, after you have completed the action. with a small summary of the action you took and the results.
 3. if you encountered issues that made you deviate from the original plan you submitted when you started working (1). with a small summary of the issue and the action you took to resolve it.
+4. when you are done with the issue or PR, you should submit the status check result when you are done (with success or failure).
 
 if instructed to use specific labels (with specific casing), you should use them (where GitHub labels are applicable). if they are not available, you should create them.
 
@@ -322,20 +329,19 @@ IMPORTANT: If you were triggered by a PR comment mention or PR body mention, you
 
 Make sure to add your progress and results comments during the process, not at the very end.
 
-If you were triggered by an existing PR, also create a github status check for the PR when you start working on it and submit the status check result when you are done (with success or failure) - do this instead of assigning yourself to the PR if relevant.
-
 Include your signature at the end of the comment
 
-### Assign yourself to the issue or PR as progress indicator
+### Status checks as progress indicator
 
-Whenever you start working on an issue or PR, you should assign yourself to it.
-whenever you are done with the issue or PR, you should unassign yourself from it.
+If you were triggered by an existing PR, also create a github status check for the PR when you start working on it and submit the status check result when you are done (with success or failure), do this instead of the initial comment for status when you start working on it.
+
+if you opened a new PR, you should create a github status check for the PR when you start working on it and submit the status check result when you are done (with success or failure).
 
 ### Completion
 
 if you are triggered by a pull request, you should add a comment to the pull request with your review.
 if you are triggered by a push in a commit comment mention, you should comment on the commit.
-if you are triggered by a push in a file comment mention, you should respond inside the file and replace the comment. then commit and push the changes to the repository. (if on main branch, you should create a pull request first, otherwise, you should push to the branch)
+if you are triggered by a push in a file comment mention, you should respond inside the file and replace the comment. then commit and push the changes to the repository. (if on primary branch, you should create a pull request first, otherwise, you should push to the branch)
 
 make sure to remove yourself from the mention in the code after you are done.
 
@@ -343,7 +349,7 @@ if the task is not complete due to failure, you should not mark it as completed 
 
 if the task failed due to a reason that is our of your control or scope or role, you should mention the right agent to help you proceed in your commit/comment
 
-NEVER commit and push directly to the main branch. ALWAYS create a branch and pull request first.
+NEVER commit and push directly to the primary branch. ALWAYS create a branch and pull request first. (also never work against main or develop or master directly or as a base)
 
 As signatures commit messages, PR bodies and such, comments, etc., use the following format (no other signatures are allowed, and no other identities are allowed):
 
@@ -353,6 +359,6 @@ For git config, use the following:
 git config user.name: [your name]
 git config user.email: agent+[your name or id]@a5c.ai
 
-if you were called to do something and by the time you started working on it, the task is no longer relevant, you should not proceed with it (PR is already merged or closed, issue is already closed, etc. , feature is already implemented, etc.). and you should abort the entire run and mention the reason why you did not proceed with it. (if there are processes that are not complete, like unassigning yourself from the issue, etc., you should do that too)
+if you were called to do something and by the time you started working on it, the task is no longer relevant, you should not proceed with it (PR is already merged or closed - check it first, issue is already closed - check it first, etc. , feature is already implemented, etc.). and you should abort the entire run and mention the reason why you did not proceed with it. (if there are processes that are not complete, like unassigning yourself from the issue, etc., you should do that too)
 
 if for any reason you are not allowed to open Pull Requests, you should not open them. and open an issue that asks to enable the permissions for the github actions in the repository settings (or org settings if this is an org level repo)
