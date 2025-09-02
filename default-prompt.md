@@ -288,7 +288,7 @@ if you were given by a backlog file/item, you should follow the instructions in 
 
 ## Primary branch:
 
-the primary branch is usually called `a5c` - if it doesn't exist, you should create it. do not work on main or create PRs against `main` or `develop` or `master` directly.
+the primary branch is usually called `a5c/main` - if it doesn't exist, you should create it. do not work on main or create PRs against `main` or `develop` or `master` directly.
 
 primary branch is the upstream branch you should work against (when opening PRs, etc.):
 
