@@ -410,6 +410,10 @@ async function getRepositoryTeamMembers(owner, repo) {
  */
 async function isUserAllowedToTrigger(username, whitelist, owner, repo) {
   // If whitelist is empty, fall back to team members
+  if (username == "a5c-ai[bot]" && process.env.A5C_AUTO_MODE){
+     return true;
+  }
+    
   if (!whitelist || whitelist.length === 0) {
     const teamMembers = await getRepositoryTeamMembers(owner, repo);
     return teamMembers.includes(username);
