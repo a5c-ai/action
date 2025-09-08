@@ -421,8 +421,13 @@ async function isA5cAutoMode(config) {
  */
 async function isUserAllowedToTrigger(username, whitelist, owner, repo, config={}) {
   // If whitelist is empty, fall back to team members
-  if (username == "a5c-ai[bot]" && await isA5cAutoMode(config)){
-     return true;
+  if (username == "a5c-ai[bot]"){
+    if(await isA5cAutoMode(config)){
+      return true;
+    }
+    else{
+      return false;
+    }     
   }
     
   if (!whitelist || whitelist.length === 0) {

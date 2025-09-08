@@ -31,6 +31,7 @@ async function loadConfig() {
       const userConfigContent = fs.readFileSync(configPath, 'utf8');
       userConfig = yaml.load(userConfigContent) || {};
       core.info(`📋 Loaded user configuration from local file: ${configPath}`);
+      core.debug(`📋 User configuration: ${JSON.stringify(userConfig)}`);
     } else {
       core.info(`📋 No user configuration found at: ${configPath}, using defaults`);
     }
