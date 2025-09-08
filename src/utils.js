@@ -422,19 +422,25 @@ async function isA5cAutoMode(config) {
 async function isUserAllowedToTrigger(username, whitelist, owner, repo, config={}) {
   // If whitelist is empty, fall back to team members
   if (username == "a5c-ai[bot]"){
+    core.debug(`📋 Checking if a5c-ai[bot] is allowed to trigger an agent in auto mode: ${await isA5cAutoMode(config)}`);
     if(await isA5cAutoMode(config)){
+      core.debug(`📋 a5c-ai[bot] is allowed to trigger an agent in auto mode`);
       return true;
     }
     else{
+      core.debug(`📋 a5c-ai[bot] is not allowed to trigger an agent in auto mode`);
       return false;
     }     
   }
     
+
   if (!whitelist || whitelist.length === 0) {
+    core.debug(`📋 Whitelist is empty, falling back to team members`);
     const teamMembers = await getRepositoryTeamMembers(owner, repo);
     return teamMembers.includes(username);
   }
   
+  core.debug(`📋 Checking if ${username} is allowed to trigger an agent against whitelist: ${whitelist}`);
   // Otherwise check against whitelist
   return whitelist.includes(username);
 }
