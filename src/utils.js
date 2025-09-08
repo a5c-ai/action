@@ -407,7 +407,6 @@ async function isA5cAutoMode(config) {
     if(config.a5c_auto_mode == "true"){
       return true;
     }    
-    return true;
   }
   
   return false;
