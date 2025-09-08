@@ -399,7 +399,19 @@ async function getRepositoryTeamMembers(owner, repo) {
     return [];
   }
 }
-
+async function isA5cAutoMode(config) {
+  if(process.env.A5C_AUTO_MODE == "true"){
+    return true;
+  }
+  if(config){
+    if(config.a5c_auto_mode == "true"){
+      return true;
+    }    
+    return true;
+  }
+  
+  return false;
+}
 /**
  * Check if a user is allowed to trigger an agent
  * @param {string} username - GitHub username to check
@@ -408,9 +420,9 @@ async function getRepositoryTeamMembers(owner, repo) {
  * @param {string} repo - Repository name
  * @returns {Promise<boolean>} - True if user is allowed
  */
-async function isUserAllowedToTrigger(username, whitelist, owner, repo) {
+async function isUserAllowedToTrigger(username, whitelist, owner, repo, config={}) {
   // If whitelist is empty, fall back to team members
-  if (username == "a5c-ai[bot]" && process.env.A5C_AUTO_MODE){
+  if (username == "a5c-ai[bot]" && await isA5cAutoMode(config)){
      return true;
   }
     

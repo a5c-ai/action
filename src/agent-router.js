@@ -44,7 +44,7 @@ async function handleMentionBasedActivation(config, dryRun = false) {
         ? agent.user_whitelist 
         : (config.defaults?.user_whitelist || []);
       
-      const isAllowed = await isUserAllowedToTrigger(username, whitelist, owner, repo);
+      const isAllowed = await isUserAllowedToTrigger(username, whitelist, owner, repo, config);
       
       if (isAllowed) {
         allowedAgents.push(agent);
@@ -99,7 +99,7 @@ async function handleEventBasedActivation(config, dryRun = false) {
         ? agent.user_whitelist 
         : (config.defaults?.user_whitelist || []);
       
-      const isAllowed = await isUserAllowedToTrigger(username, whitelist, owner, repo);
+      const isAllowed = await isUserAllowedToTrigger(username, whitelist, owner, repo, config);
       
       if (isAllowed) {
         allowedAgents.push(agent);

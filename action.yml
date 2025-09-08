@@ -16,13 +16,16 @@ inputs:
     default: '.a5c/config.yml'
   config_uri:
     description: 'Remote URI for configuration file (supports http://, https://, file://). Takes precedence over config_file if provided.'
-    required: false
-  
+    required: false  
   # GitHub Authentication
   github_token:
     description: 'GitHub token for API operations'
     required: false
     default: '${{ github.token }}'
+  a5c_auto_mode:
+    description: 'Auto mode for a5c - true or false'
+    required: false
+    default: ''
 
 outputs:
   # Execution Results
@@ -333,4 +336,5 @@ runs:
         INPUT_GITHUB_TOKEN: ${{ inputs.github_token }} 
         ACTIONS_RUNTIME_TOKEN: ${{ env.ACTIONS_RUNTIME_TOKEN }}
         A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL }}
+        A5C_AUTO_MODE: ${{ inputs.a5c_auto_mode }}
 
