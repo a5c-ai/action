@@ -22,10 +22,6 @@ inputs:
     description: 'GitHub token for API operations'
     required: false
     default: '${{ github.token }}'
-  a5c_auto_mode:
-    description: 'Auto mode for a5c - true or false'
-    required: false
-    default: ''
 
 outputs:
   # Execution Results
@@ -320,7 +316,7 @@ runs:
       shell: bash
       working-directory: ${{ github.workspace }}
       env:
-        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL }}
+        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL || 'github_codex' }}
         
     - name: Run a5c Runner
       id: a5c-agent
@@ -335,6 +331,4 @@ runs:
         INPUT_CONFIG_URI: ${{ inputs.config_uri }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github_token }} 
         ACTIONS_RUNTIME_TOKEN: ${{ env.ACTIONS_RUNTIME_TOKEN }}
-        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL }}
-        A5C_AUTO_MODE: ${{ inputs.a5c_auto_mode }}
-
+        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL || 'github_codex' }}
