@@ -399,12 +399,12 @@ async function getRepositoryTeamMembers(owner, repo) {
     return [];
   }
 }
-async function isA5cAutoMode(config) {
+function isA5cAutoMode(config) {
   if(process.env.A5C_AUTO_MODE == "true"){
     return true;
   }
-  if(config){
-    if(config.a5c_auto_mode == "true"){
+  if(config){    
+    if(config.a5c_auto_mode){
       return true;
     }    
   }
@@ -423,7 +423,7 @@ async function isUserAllowedToTrigger(username, whitelist, owner, repo, config) 
   // If whitelist is empty, fall back to team members
   if (username == "a5c-ai[bot]"){
     core.debug(`📋 Checking if a5c-ai[bot] is allowed to trigger an agent in auto mode: ${JSON.stringify(config)}`);
-    if(await isA5cAutoMode(config)){
+    if(isA5cAutoMode(config)){
       core.debug(`📋 a5c-ai[bot] is allowed to trigger an agent in auto mode`);
       return true;
     }
