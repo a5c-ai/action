@@ -70,9 +70,9 @@ on:
     types: [created, edited]
 
   # Scheduled Events
-  schedule:
+  # schedule:
     # Every 30 minutes
-    - cron: '*/30 * * * *'
+    # - cron: '*/30 * * * *'
   workflow_run:
     types: [completed]
     workflows: [Build, Deploy,Tests,Release,E2E Tests,Infrastructure Deployment,Integration Tests]
