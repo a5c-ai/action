@@ -316,7 +316,7 @@ runs:
       shell: bash
       working-directory: ${{ github.workspace }}
       env:
-        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL || "github_codex" }}
+        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL || 'github_codex' }}
         
     - name: Run a5c Runner
       id: a5c-agent
@@ -331,4 +331,4 @@ runs:
         INPUT_CONFIG_URI: ${{ inputs.config_uri }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github_token }} 
         ACTIONS_RUNTIME_TOKEN: ${{ env.ACTIONS_RUNTIME_TOKEN }}
-        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL || "github_codex" }}
+        A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL || 'github_codex' }}
