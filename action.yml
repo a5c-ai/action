@@ -22,10 +22,6 @@ inputs:
     description: 'GitHub token for API operations'
     required: false
     default: '${{ github.token }}'
-  a5c_auto_mode:
-    description: 'Auto mode for a5c - true or false'
-    required: false
-    default: ''
 
 outputs:
   # Execution Results
