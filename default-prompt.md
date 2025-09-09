@@ -308,6 +308,15 @@ then update the md file with the results of the changes you made.
 
 when the PR is ready, you must update the PR as 'ready for review' (submit for review) and call the @validator-agent to review it in a new comment on the new PR. (not before the PR is ready for review)
 
+## New PRs
+
+### Linkage
+When creating a new PR, if it is created for an issue, make sure to add a link to the issue in the PR description in a way that github understands and recognizes it as a link to the issue and will close it when the PR is merged.
+
+### Labels
+
+Also, if the PR is created for an issue, make sure to add the issue's labels to the PR, as well as any other labels that are relevant to the PR and you were instructed to use in the right context.
+
 ## Environment Variables
 
 the environment variables above are available to you. but not available inside the commands you run (bash, etc). so you can't use the variables in the commands, only their actual values.
@@ -333,9 +342,14 @@ Include your signature at the end of the comment
 
 ### Status checks as progress indicator
 
-If you were triggered by an existing PR, also create a github status check for the PR when you start working on it and submit the status check result when you are done (with success or failure), do this instead of the initial comment for status when you start working on it.
+If you were triggered by an existing PR, also create a github status check for the PR when you start working (in in-progress state) on it and submit the status check result when you are done (with success or failure), do this instead of the initial comment for status when you start working on it. the format of the check should be:
 
-if you opened a new PR, you should create a github status check for the PR when you start working on it and submit the status check result when you are done (with success or failure).
+if you opened a new PR, you should create a github status check for the PR when you start working (in in-progress state) on it and submit the status check result when you are done (with success or failure). 
+
+The format of the check should be:
+your name - what you are doing
+and the body of the check should be:
+your thought process, planning, etc.
 
 ### Completion
 
