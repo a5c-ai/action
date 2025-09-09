@@ -71,6 +71,10 @@ function buildFinalCliCommand(baseCommand, agent, config, template = null) {
     }
     core.debug('🔍 Added environment variables injection to prompt');
   }
+  if(template?.install) {
+    finalCommand = `${template.install} && ${finalCommand}`;
+    core.debug('🔍 Added installation command');
+  }
   
   return finalCommand;
 }

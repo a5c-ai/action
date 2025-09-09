@@ -22,6 +22,7 @@ cli_agents:
     cli_command: "cat {{prompt_path}} | claude --mcp-config {{mcp_config}} -p 'fulfill the request' --output-format stream-json --allowedTools Bash,Read,Glob,Grep,Write,MultiEdit,Edit,NotebookRead,NotebookEdit,WebFetch,TodoRead,TodoWrite,WebSearch,Task,Agent,mcp__github,mcp__agent_reporter --dangerously-skip-permissions --verbose --model {{model}}"
     description: "Claude AI via claude-code CLI"
     model: "claude-sonnet-4-20250514"
+    install: "npm install -g @anthropic-ai/claude-code"
   
   codex:
     cli_command: "codex exec --dangerously-bypass-approvals-and-sandbox -c model={{model}} --output-last-message /tmp/agent-output.md"
@@ -29,7 +30,8 @@ cli_agents:
     inject_prompt_to_stdin: true
     inject_envs_to_prompt: false
     description: "OpenAI models via codex CLI"
-    
+    install: "npm install -g @openai/codex"
+
   azure_codex:
     # translates into cli_command: "printenv | cat - {{prompt_path}} | COLORBT_SHOW_HIDDEN=1 RUST_BACKTRACE=full CODEX_QUIET_MODE=1 codex exec --dangerously-bypass-approvals-and-sandbox -c model=codex-mini -c model_provider=azure -c model_providers.azure.name=azure -c model_providers.azure.wire_api=responses -c model_providers.azure.base_url=https://{{envs.AZURE_OPENAI_PROJECT_NAME}}.openai.azure.com/openai -c model_providers.azure.env_key=AZURE_OPENAI_API_KEY -c model_providers.azure.query_params.api-version=2025-04-01-preview --output-last-message /tmp/agent-output.md"
     cli_command: "codex exec --dangerously-bypass-approvals-and-sandbox -c model={{model}} -c model_provider=azure -c model_providers.azure.name=azure -c model_providers.azure.wire_api=responses -c model_providers.azure.base_url=https://{{envs.AZURE_OPENAI_PROJECT_NAME}}.openai.azure.com/openai -c model_providers.azure.env_key=AZURE_OPENAI_API_KEY -c model_providers.azure.query_params.api-version=2025-04-01-preview --output-last-message /tmp/agent-output.md"
@@ -41,6 +43,7 @@ cli_agents:
     inject_prompt_to_stdin: true # inject prompt to stdin (prepends cat {{prompt_path}} | ) to the cli command
     inject_envs_to_prompt: false # inject envs to prompt (prepends printenv | ) to the cli command
     description: "Azure OpenAI via codex CLI"
+    install: "npm install -g @openai/codex"
   azure_model_router:
     # translates into cli_command: "printenv | cat - {{prompt_path}} | COLORBT_SHOW_HIDDEN=1 RUST_BACKTRACE=full CODEX_QUIET_MODE=1 codex exec --dangerously-bypass-approvals-and-sandbox -c model=codex-mini -c model_provider=azure -c model_providers.azure.name=azure -c model_providers.azure.wire_api=responses -c model_providers.azure.base_url=https://{{envs.AZURE_OPENAI_PROJECT_NAME}}.openai.azure.com/openai -c model_providers.azure.env_key=AZURE_OPENAI_API_KEY -c model_providers.azure.query_params.api-version=2025-04-01-preview --output-last-message /tmp/agent-output.md"
     cli_command: "codex exec --dangerously-bypass-approvals-and-sandbox -c model={{model}} -c model_provider=azure -c model_providers.azure.name=azure -c model_providers.azure.wire_api=chat -c model_providers.azure.base_url=https://{{envs.AZURE_OPENAI_PROJECT_NAME}}.cognitiveservices.azure.com/openai -c model_providers.azure.env_key=AZURE_OPENAI_API_KEY -c model_providers.azure.query_params.api-version=2025-01-01-preview --output-last-message /tmp/agent-output.md"
@@ -50,8 +53,16 @@ cli_agents:
       CODEX_QUIET_MODE: 1
     model: "model-router" # default model to use if not specified in the agent or in the defaults.
     inject_prompt_to_stdin: true # inject prompt to stdin (prepends cat {{prompt_path}} | ) to the cli command
-    inject_envs_to_prompt: true # inject envs to prompt (prepends printenv | ) to the cli command
+    inject_envs_to_prompt: false # inject envs to prompt (prepends printenv | ) to the cli command
     description: "Azure OpenAI via codex CLI with model-router"    
+    install: "npm install -g @openai/codex"
+  github_codex:
+    cli_command: "codex exec --dangerously-bypass-approvals-and-sandbox -c model={{model}} -c model_provider=github -c model_providers.github.name=github -c model_providers.github.wire_api=chat -c model_providers.github.base_url=https://api.github.com/ -c model_providers.github.env_key=GITHUB_TOKEN -c model_providers.github.query_params.api-version=2025-08-07 --output-last-message /tmp/agent-output.md"
+    model: "gpt-5"
+    inject_prompt_to_stdin: true
+    inject_envs_to_prompt: false
+    description: "GitHub Models via codex CLI"
+    install: "npm install -g @openai/codex"
   gemini:
     cli_command: "gemini"
     envs:
@@ -60,7 +71,7 @@ cli_agents:
     inject_prompt_to_stdin: true
     inject_envs_to_prompt: false
     description: "Google Gemini via official Gemini CLI"
-
+    install: "npm install -g @google/gemini"
 # MCP Server Configuration
 # Path to user-defined MCP servers (optional - built-in servers are always available)
 mcp_config_path: ".a5c/mcps.json"
