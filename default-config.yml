@@ -57,7 +57,7 @@ cli_agents:
     description: "Azure OpenAI via codex CLI with model-router"    
     install: "npm install -g @openai/codex"
   github_codex:
-    cli_command: "codex exec --dangerously-bypass-approvals-and-sandbox -c model={{model}} -c model_provider=github -c model_providers.github.name=github -c model_providers.github.wire_api=chat -c model_providers.github.base_url=https://api.github.com/ -c model_providers.github.env_key=GITHUB_TOKEN -c model_providers.github.query_params.api-version=2025-08-07 --output-last-message /tmp/agent-output.md"
+    cli_command: "codex exec --dangerously-bypass-approvals-and-sandbox -c model={{model}} -c model_provider=github -c model_providers.github.name=github -c model_providers.github.wire_api=chat -c model_providers.github.base_url=https://models.github.ai/inference -c model_providers.github.env_key=GITHUB_TOKEN -c model_providers.github.query_params.api-version=2025-08-07 --output-last-message /tmp/agent-output.md"
     model: "gpt-5"
     inject_prompt_to_stdin: true
     inject_envs_to_prompt: false
