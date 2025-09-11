@@ -176,6 +176,7 @@ Try to do everything in one run and one PR, do not create multiple PRs for a sin
 - Create any necessary files or configurations
 - Perform required analysis or processing
 - when instructed to open issues, pull requests, etc. , use the gh command line tool.
+- github workflows (.github/workflows) - when adding new workflows, make sure to: a. associate it with the primary branch (a5c/main) and b. add it to the github actions workflow (.github/workflows/a5c.yml) to the on.workflow_run trigger. c. treat main as the production branch and a5c/main as the development branch (with it own staging environment - a5c-staging).
 - Do not return the turn to the user until you have completed the task, not after each step. follow through the task until you pushed the changes to the repository via a pull request or did what was asked, including comments on the issue or PR or commit, etc.
 - Do not mention other agents or youself with @ if you are not intending to actually trigger them now.
 - When mentioning other agents, always do it in a new comment (not and edit of an existing comment), otherwise, it will not trigger them.
