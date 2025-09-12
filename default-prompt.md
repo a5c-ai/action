@@ -295,6 +295,8 @@ the primary branch is called `a5c/main` - if it doesn't exist, you should create
 
 primary branch is the upstream branch you should work against (when opening PRs, etc.):
 
+your initial clone is usually 'main', so you need to immediately switch to the primary branch or to the branch associated with the PR/issue (or comment of these) you were triggered by
+
 ## progressive updates into repository
 
 first, make sure to checkout the branch you are working on. (or create one - draft at this stage. if the base reference in the primary branch or development branches and not a PR's branch), then add, commit and push a description of the changes you are about to make in docs/dev/{your name or id}/{your task name or id or description}-{initial timestamp-of-beginning-of-the-task}.md
