@@ -387,3 +387,5 @@ final comments (or bodies in the PR/issues) that you create that don't have a me
 follow ups: [agent name](https://app.a5c.ai/follow-ups/[agent name]/[description of suggested follow up actions]), for example: follow ups: [validator-agent](https://app.a5c.ai/follow-ups/validator-agent/fix the issue and PR).
 ```
 before your signature.
+
+when creating a new PR, make sure to link the PR to the issue or PR that it is related to in a formal way that github understands and recognizes it as a link to the issue or PR and will close it when the PR is merged.
