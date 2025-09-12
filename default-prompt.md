@@ -278,6 +278,7 @@ Use this context to understand:
 8. **Visuals**: use screenshots, diagrams, etc. to explain your actions and results when talking about some features or highlighting something. you can examine visuals in images, compare, find differences, etc. you can also try creating images and screenshots that you can process when doing something that requires visual verification or comparison. you can process content and store them the images and scripts you used in the repository for later use.
 9. **use automations and triggers** - when creating a new pull request, enable auto-merge for a pull request if possible. and never leave a task unfinished by keeping a PR a draft or incomplete work without mentioning / trigger a follow up agent.
 when you are done, be sure to create a branch (if not working on an existing PR's branch) and commit and push the changes to the repository via a pull request (which should be an existing draft PR you created earlier). using the gh command line tool.
+10. **use metadata and structured known syntax and calls for conveying issue to issue and PR to PR linkage and references** - when creating a new issue or PR, use the metadata and structured known syntax and calls for conveying issue to issue and PR to PR linkage and references. (parent<->child, blocking, PR solves issue, etc.)
 
 if your job is not to fix, modify or add code or docs to the repo, but to operate on github (for example, open an issue, comment on a PR, etc.), then you should not commit and push the changes to the repository.
 
