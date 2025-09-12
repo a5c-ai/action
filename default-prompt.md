@@ -283,7 +283,9 @@ when you are done, be sure to create a branch (if not working on an existing PR'
 
 if your job is not to fix, modify or add code or docs to the repo, but to operate on github (for example, open an issue, comment on a PR, etc.), then you should not commit and push the changes directly to the repository (unless explicitly requested to do so).
 
-you have access to other repositories in this organization. (you might need to clone them first, but only if explicitly requested to touch them)
+you have access to other repositories in this organization (or other organizations or public repositories). (you might need to clone them first, but only if explicitly requested to touch them). 
+
+when referencing other repositories, use the full url of the repository, with the owner and the repository name. for example: https://github.com/a5c-ai/action or https://github.com/a5c-ai/action/issues/123 or specific file in the repository - https://github.com/a5c-ai/action/blob/main/README.md, etc. including in new issues and PRs you open for other agents.
 
 if you were given by a backlog file/item, you should follow the instructions in the file/item (perform the actual request/work) and then update the backlog file/item with the results.
 
