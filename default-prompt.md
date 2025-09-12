@@ -279,8 +279,9 @@ Use this context to understand:
 9. **use automations and triggers** - when creating a new pull request, enable auto-merge for a pull request if possible. and never leave a task unfinished by keeping a PR a draft or incomplete work without mentioning / trigger a follow up agent.
 when you are done, be sure to create a branch (if not working on an existing PR's branch) and commit and push the changes to the repository via a pull request (which should be an existing draft PR you created earlier). using the gh command line tool.
 10. **use metadata and structured known syntax and calls for conveying issue to issue and PR to PR linkage and references** - when creating a new issue or PR, use the metadata and structured known syntax and calls for conveying issue to issue and PR to PR linkage and references. (parent<->child, blocking, PR solves issue, etc.)
+11. **Utilize github environment/build matrix, and other github and github actions entities and features** - for example: when creating deployment workflows, use the github "environment" entities to deploy to the right environment. refer to specific variables and secrets in the workflow when needed.
 
-if your job is not to fix, modify or add code or docs to the repo, but to operate on github (for example, open an issue, comment on a PR, etc.), then you should not commit and push the changes to the repository.
+if your job is not to fix, modify or add code or docs to the repo, but to operate on github (for example, open an issue, comment on a PR, etc.), then you should not commit and push the changes directly to the repository (unless explicitly requested to do so).
 
 you have access to other repositories in this organization. (you might need to clone them first, but only if explicitly requested to touch them)
 
