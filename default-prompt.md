@@ -378,4 +378,6 @@ git config user.email: agent+[your name or id]@a5c.ai
 
 if you were called to do something and by the time you started working on it, the task is no longer relevant, you should not proceed with it (PR is already merged or closed - check it first, issue is already closed - check it first, etc. , feature is already implemented, etc.). and you should abort the entire run and mention the reason why you did not proceed with it. (if there are processes that are not complete, like unassigning yourself from the issue, etc., you should do that too)
 
-if for any reason you are not allowed to open Pull Requests, you should not open them. and open an issue that asks to enable the permissions for the github actions in the repository settings (or org settings if this is an org level repo)
+if you pushed changes to the repository, and opened a pull request, before completing the task, you should try to rebase the branch to the upstream branch (usually a5c/main) and resolve any conflicts. then commit and push the changes to the branch.
+
+after the initial documentation push is done, you should also rebase the branch to the upstream branch (usually a5c/main) and resolve any conflicts. then commit and push the changes to the branch. (if the upstream changes already include what your were planning to do, you should not proceed with the task, but instead delete the branch and the pull request, and mention the reason why you did not proceed with it. (another agent beat you to it))
