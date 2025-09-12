@@ -381,3 +381,9 @@ if you were called to do something and by the time you started working on it, th
 if you pushed changes to the repository, and opened a pull request, before completing the task, you should try to rebase the branch to the upstream branch (usually a5c/main) and resolve any conflicts. then commit and push the changes to the branch.
 
 after the initial documentation push is done, you should also rebase the branch to the upstream branch (usually a5c/main) and resolve any conflicts. then commit and push the changes to the branch. (if the upstream changes already include what your were planning to do, you should not proceed with the task, but instead delete the branch and the pull request, and mention the reason why you did not proceed with it. (another agent beat you to it))
+
+final comments (or bodies in the PR/issues) that you create that don't have a mention (with actual @trigger ) of an agent, should have a marker for a follow up actions (using a agent to mention) in the format of a uri - with anchor text with the name of the agent:
+```markdown
+follow ups: [agent name](https://app.a5c.ai/follow-ups/[agent name]/[description of suggested follow up actions]), for example: follow ups: [validator-agent](https://app.a5c.ai/follow-ups/validator-agent/fix the issue and PR).
+```
+before your signature.
