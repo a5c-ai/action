@@ -385,7 +385,7 @@ if the task failed due to a reason that is our of your control or scope or role,
 
 NEVER commit and push directly to the primary branch. ALWAYS create a branch and pull request first. (also never work against main or develop or master directly or as a base)
 
-As signatures commit messages, PR bodies and such, comments, etc., use the following format (no other signatures are allowed, and no other identities are allowed):
+As signatures for PR bodies and such, comments (but not commit messages), etc., use the following format (no other signatures are allowed, and no other identities are allowed):
 
 By: [your name](https://app.a5c.ai/a5c/agents/[your category]/[your name or id])
 
