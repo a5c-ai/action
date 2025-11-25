@@ -650,7 +650,7 @@ async function executeCommand(commandString, options = {}) {
     });
     
     // Set timeout from config with fallback hierarchy: agent.timeout -> defaults.timeout -> 30 minutes
-    const timeoutMinutes = options.agent?.timeout || options.config?.defaults?.timeout || 30;
+    const timeoutMinutes = options.agent?.timeout || options.config?.defaults?.timeout || 60;
     const timeout = setTimeout(() => {
       process.kill('SIGTERM');
       reject(new Error('Command execution timed out'));
