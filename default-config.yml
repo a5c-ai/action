@@ -6,7 +6,7 @@
 defaults:
   # Default model and execution settings
   max_turns: 10
-  timeout: 30
+  timeout: 60
   verbose: true
   
   # Default user whitelist (if not specified at agent level)
