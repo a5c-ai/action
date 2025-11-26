@@ -39,7 +39,7 @@ cli_agents:
       COLORBT_SHOW_HIDDEN: 1
       RUST_BACKTRACE: full
       CODEX_QUIET_MODE: 1
-    model: "gpt-5-codex" # default model to use if not specified in the agent or in the defaults.
+    model: "gpt-5.1-codex" # default model to use if not specified in the agent or in the defaults.
     inject_prompt_to_stdin: true # inject prompt to stdin (prepends cat {{prompt_path}} | ) to the cli command
     inject_envs_to_prompt: false # inject envs to prompt (prepends printenv | ) to the cli command
     description: "Azure OpenAI via codex CLI"
