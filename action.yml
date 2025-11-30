@@ -275,5 +275,6 @@ runs:
         INPUT_CONFIG_FILE: ${{ inputs.config_file }}
         INPUT_CONFIG_URI: ${{ inputs.config_uri }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github_token }} 
+        GITHUB_TOKEN: ${{ inputs.github_token }} 
         ACTIONS_RUNTIME_TOKEN: ${{ env.ACTIONS_RUNTIME_TOKEN }}
         A5C_CLI_TOOL: ${{ env.A5C_CLI_TOOL || 'github_codex' }}
