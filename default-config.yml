@@ -67,15 +67,14 @@ cli_agents:
     inject_envs_to_prompt: false
     description: "GitHub Models via codex CLI"
     install: "npm install -g @openai/codex@0.31.0"
-  gemini:
-    cli_command: "gemini"
+  jules:
+    cli_command: "cat {{prompt_path}} | gemini"
     envs:
       GEMINI_API_KEY: "{{envs.GEMINI_API_KEY}}"
-    model: "gemini-2.5-pro"
-    inject_prompt_to_stdin: true
+    model: "gemini-3-pro"
     inject_envs_to_prompt: false
-    description: "Google Gemini via official Gemini CLI"
-    install: "npm install -g @google/gemini"
+    description: "Google Gemini via Gemini CLI"
+    install: "npm install -g @google/gemini-cli"
 # MCP Server Configuration
 # Path to user-defined MCP servers (optional - built-in servers are always available)
 mcp_config_path: ".a5c/mcps.json"
