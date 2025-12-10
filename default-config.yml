@@ -28,6 +28,11 @@ cli_agents:
     description: "Claude AI via claude-code CLI"
     model: "global.anthropic.claude-sonnet-4-5-20250929-v1:0"
     install: "npm install -g @anthropic-ai/claude-code"    
+  claude_vertex:
+    cli_command: "cat {{prompt_path}} | CLOUD_ML_REGION=global CLAUDE_CODE_USE_VERTEX=1 claude -p 'fulfill the request' --output-format stream-json --allowedTools Bash,Read,Glob,Grep,Write,MultiEdit,Edit,NotebookRead,NotebookEdit,WebFetch,TodoRead,TodoWrite,WebSearch,Task,Agent,BashOutput,ExitPlanMode,KillShell,Skill,SlashCommand --dangerously-skip-permissions --verbose --model {{model}}"
+    description: "Claude AI via claude-code CLI"
+    model: "claude-sonnet-4-5@20250929"
+    install: "npm install -g @anthropic-ai/claude-code"      
   codex:
     cli_command: "codex exec --dangerously-bypass-approvals-and-sandbox -c model={{model}} --output-last-message /tmp/agent-output.md"
     model: "gpt-5-2025-08-07"
