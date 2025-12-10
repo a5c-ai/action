@@ -68,7 +68,7 @@ cli_agents:
     description: "GitHub Models via codex CLI"
     install: "npm install -g @openai/codex@0.31.0"
   jules:
-    cli_command: "cat {{prompt_path}} | gemini"
+    cli_command: "cat {{prompt_path}} | gemini --yolo --model {{model}}"
     envs:
       GEMINI_API_KEY: "{{envs.GEMINI_API_KEY}}"
     model: "gemini-3-pro"
