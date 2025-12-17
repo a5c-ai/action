@@ -21,7 +21,7 @@ cli_agents:
   claude:
     cli_command: "cat {{prompt_path}} | claude -p 'fulfill the request' --output-format stream-json --allowedTools Bash,Read,Glob,Grep,Write,MultiEdit,Edit,NotebookRead,NotebookEdit,WebFetch,TodoRead,TodoWrite,WebSearch,Task,Agent --dangerously-skip-permissions --verbose --model {{model}}"
     description: "Claude AI via claude-code CLI"
-    model: "claude-sonnet-4-20250514"
+    model: "claude-sonnet-4-5-20250929"
     install: "npm install -g @anthropic-ai/claude-code"
   claude_bedrock:
     cli_command: "cat {{prompt_path}} | CLAUDE_CODE_USE_BEDROCK=true claude -p 'fulfill the request' --output-format stream-json --allowedTools Bash,Read,Glob,Grep,Write,MultiEdit,Edit,NotebookRead,NotebookEdit,WebFetch,TodoRead,TodoWrite,WebSearch,Task,Agent,BashOutput,ExitPlanMode,KillShell,Skill,SlashCommand --dangerously-skip-permissions --verbose --model {{model}}"
